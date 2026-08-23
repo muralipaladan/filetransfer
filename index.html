@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>P2P File Transfer with QR</title>
+  <!-- PeerJS & QRCode Libraries -->
+  <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <style>
+    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; text-align: center; }
+    .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #f9f9f9; }
+    #qrcode { display: flex; justify-content: center; margin: 15px 0; }
+    input, button { padding: 10px; margin: 6px 0; width: 90%; font-size: 15px; }
+    button { background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
+    button:disabled { background-color: #aaa; cursor: not-allowed; }
+    #status { font-weight: bold; margin: 15px 0; color: #333; }
+    .success-btn { background-color: #28a745 !important; }
+  </style>
+</head>
+<body>
+
+  <h2>P2P ഫയൽ ഷെയറിങ് & QR കണക്റ്റ്</h2>
+
+  <!-- QR Code & My ID Box -->
+  <div class="box">
+    <p style="margin: 0; font-size: 14px; color: #666;">മൊബൈലിൽ നിന്ന് ഈ QR സ്കാൻ ചെയ്യുക:</p>
+    <div id="qrcode"></div>
+    <p style="font-size: 12px; margin: 0;">Peer ID: <b id="my-id">ലഭ്യമാക്കുന്നു...</b></p>
+  </div>
+
+  <!-- Manual Connect Box -->
+  <div class="box">
+    <input type="text" id="target-id" placeholder="മറ്റേ ഉപകരണത്തിന്റെ ID ഇവിടെ നൽകാം">
+    <button onclick="manualConnect()">കണക്റ്റ് ചെയ്യുക</button>
+  </div>
+
+  <!-- File Transfer Box -->
+  <div class="box">
+    <input type="file" id="file-input" disabled>
+    <button id="send-btn" onclick="sendFile()" disabled>ഫയൽ അയക്കുക</button>
+  </div>
+
+  <div id="status">സ്റ്റാറ്റസ്: തയ്യാറാകുന്നു...</div>
+  <div id="download-area"></div>
+
+  <script>
+    const statusText = document.getElementById('status');
+    const myIdDisplay = document.getElementById('my-id');
+    const fileInput = document.getElementById('file-input');
+    const sendBtn = document.getElementById('send-btn');
+    const downloadArea = document.getElementById('download-area');
+
+    const peer = new Peer();
+    let conn = null;
+
+    // 1. Peer ഓപ്പൺ ചെയ്യുമ്പോൾ QR കോഡ് ജനറേറ്റ് ചെയ്യുന്നു
+    peer.on('open', (id) => {
+      myIdDisplay.innerText = id;
+      statusText.innerText = "സ്റ്റാറ്റസ്: കണക്ഷനായി കാത്തിരിക്കുന്നു...";
+
+      // നിലവിലെ പേജിന്റെ URL-ലേക്ക് ID ചേർത്താണ് QR നിർമ്മിക്കുന്നത്
+      const currentUrl = window.location.href.split('?')[0];
+      const connectUrl = `${currentUrl}?connect=${id}`;
+
+      new QRCode(document.getElementById("qrcode"), {
+        text: connectUrl,
+        width: 160,
+        height: 160
+      });
+
+      // URL-ൽ connect പാരാമീറ്റർ ഉണ്ടെങ്കിൽ (മൊബൈലിൽ സ്കാൻ ചെയ്യുമ്പോൾ) സ്വയം കണക്റ്റ് ആകുന്നു
+      const urlParams = new URLSearchParams(window.location.search);
+      const autoConnectId = urlParams.get('connect');
+      if (autoConnectId) {
+        document.getElementById('target-id').value = autoConnectId;
+        connectToPeer(autoConnectId);
+      }
+    });
+
+    // 2. ഇൻകമിംഗ് കണക്ഷൻ സ്വീകരിക്കുന്നു
+    peer.on('connection', (connection) => {
+      conn = connection;
+      setupConnectionHandlers();
+    });
+
+    function manualConnect() {
+      const targetId = document.getElementById('target-id').value.trim();
+      if (!targetId) return alert("Target ID നൽകുക");
+      connectToPeer(targetId);
+    }
+
+    function connectToPeer(targetId) {
+      statusText.innerText = "സ്റ്റാറ്റസ്: കണക്റ്റ് ചെയ്യുന്നു...";
+      conn = peer.connect(targetId);
+      setupConnectionHandlers();
+    }
+
+    // 3. കണക്ഷൻ ഇവന്റുകൾ
+    function setupConnectionHandlers() {
+      conn.on('open', () => {
+        statusText.innerText = "സ്റ്റാറ്റസ്: വിജയകരമായി കണക്റ്റായി! ഇനി ഫയൽ അയക്കാം.";
+        fileInput.disabled = false;
+        sendBtn.disabled = false;
+      });
+
+      conn.on('data', (data) => {
+        if (data.file) {
+          const blob = new Blob([data.file], { type: data.fileType });
+          const url = URL.createObjectURL(blob);
+          
+          downloadArea.innerHTML = `
+            <div class="box" style="background: #e8f5e9; border-color: #28a745;">
+              <p><strong>ഫയൽ ലഭിച്ചു:</strong> ${data.fileName}</p>
+              <a href="${url}" download="${data.fileName}">
+                <button class="success-btn">ഡൗൺലോഡ് ചെയ്യുക</button>
+              </a>
+            </div>
+          `;
+          statusText.innerText = "സ്റ്റാറ്റസ്: ഫയൽ ലഭിച്ചു!";
+        }
+      });
+
+      conn.on('close', () => {
+        statusText.innerText = "സ്റ്റാറ്റസ്: കണക്ഷൻ വിച്ഛേദിക്കപ്പെട്ടു.";
+        fileInput.disabled = true;
+        sendBtn.disabled = true;
+      });
+    }
+
+    // 4. ഫയൽ അയക്കൽ
+    function sendFile() {
+      const file = fileInput.files[0];
+      if (!file) return alert("ഫയൽ തിരഞ്ഞെടുക്കുക");
+
+      statusText.innerText = "സ്റ്റാറ്റസ്: ഫയൽ അയക്കുന്നു...";
+      
+      conn.send({
+        file: file,
+        fileName: file.name,
+        fileType: file.type
+      });
+
+      statusText.innerText = `സ്റ്റാറ്റസ്: ${file.name} അയച്ചു കഴിഞ്ഞു!`;
+    }
+  </script>
+</body>
+</html>

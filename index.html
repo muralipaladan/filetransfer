@@ -1,37 +1,51 @@
+
 <!DOCTYPE html>
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>P2P File Transfer with QR</title>
+  <title>Dahara - P2P File Transfer</title>
   <!-- PeerJS & QRCode Libraries -->
   <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <style>
-    body { font-family: sans-serif; max-width: 500px; margin: 20px auto; padding: 15px; text-align: center; }
-    .box { border: 1px solid #ddd; padding: 15px; border-radius: 8px; margin-bottom: 15px; background: #f9f9f9; }
-    #qrcode { display: flex; justify-content: center; margin: 15px 0; }
-    input, button { padding: 10px; margin: 6px 0; width: 90%; font-size: 15px; }
-    button { background-color: #007bff; color: white; border: none; border-radius: 5px; cursor: pointer; }
-    button:disabled { background-color: #aaa; cursor: not-allowed; }
-    #status { font-weight: bold; margin: 15px 0; color: #333; }
+    body { font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 550px; margin: 20px auto; padding: 15px; color: #333; }
+    .brand-header { text-align: center; margin-bottom: 20px; }
+    .brand-title { font-size: 28px; font-weight: 800; color: #0d6efd; margin: 0; letter-spacing: 0.5px; }
+    .brand-tagline { font-size: 13px; color: #666; margin-top: 4px; }
+    .box { border: 1px solid #e0e0e0; padding: 15px; border-radius: 10px; margin-bottom: 15px; background: #fafafa; text-align: center; }
+    #qrcode { display: flex; justify-content: center; margin: 12px 0; }
+    input, button { padding: 10px; margin: 6px 0; width: 90%; font-size: 15px; box-sizing: border-box; }
+    button { background-color: #0d6efd; color: white; border: none; border-radius: 6px; cursor: pointer; font-weight: bold; }
+    button:disabled { background-color: #ccc; cursor: not-allowed; }
+    #status { font-weight: bold; margin: 15px 0; text-align: center; color: #0d6efd; }
     .success-btn { background-color: #28a745 !important; }
+    
+    /* User Guide Styling */
+    .guide-box { background: #f0f7ff; border: 1px solid #cce5ff; border-radius: 10px; padding: 15px; margin-top: 25px; text-align: left; }
+    .guide-box h3 { margin-top: 0; color: #0056b3; font-size: 16px; border-bottom: 1px solid #cce5ff; padding-bottom: 5px; }
+    .guide-box ol { padding-left: 20px; font-size: 13px; line-height: 1.6; margin-bottom: 10px; }
+    .guide-box ul { padding-left: 20px; font-size: 12px; color: #555; line-height: 1.5; }
   </style>
 </head>
 <body>
 
-  <h2>P2P ഫയൽ ഷെയറിങ് & QR കണക്റ്റ്</h2>
+  <!-- Brand Title -->
+  <div class="brand-header">
+    <h1 class="brand-title">Dahara</h1>
+    <div class="brand-tagline">സുരക്ഷിതമായ നേരിട്ടുള്ള ഫയൽ കൈമാറ്റം (P2P Transfer)</div>
+  </div>
 
   <!-- QR Code & My ID Box -->
   <div class="box">
-    <p style="margin: 0; font-size: 14px; color: #666;">മൊബൈലിൽ നിന്ന് ഈ QR സ്കാൻ ചെയ്യുക:</p>
+    <p style="margin: 0; font-size: 14px; color: #444;">മൊബൈൽ ക്യാമറ വഴി സ്കാൻ ചെയ്യുക:</p>
     <div id="qrcode"></div>
-    <p style="font-size: 12px; margin: 0;">Peer ID: <b id="my-id">ലഭ്യമാക്കുന്നു...</b></p>
+    <p style="font-size: 12px; margin: 0;">നിങ്ങളുടെ Dahara ID: <b id="my-id">ലഭ്യമാക്കുന്നു...</b></p>
   </div>
 
   <!-- Manual Connect Box -->
   <div class="box">
-    <input type="text" id="target-id" placeholder="മറ്റേ ഉപകരണത്തിന്റെ ID ഇവിടെ നൽകാം">
+    <input type="text" id="target-id" placeholder="മറ്റേ ഉപകരണത്തിലെ Dahara ID നൽകുക">
     <button onclick="manualConnect()">കണക്റ്റ് ചെയ്യുക</button>
   </div>
 
@@ -44,6 +58,24 @@
   <div id="status">സ്റ്റാറ്റസ്: തയ്യാറാകുന്നു...</div>
   <div id="download-area"></div>
 
+  <!-- User Manual / How It Works -->
+  <div class="guide-box">
+    <h3>📖 Dahara എങ്ങനെ ഉപയോഗിക്കാം? (User Manual)</h3>
+    <ol>
+      <li><strong>കണക്റ്റ് ചെയ്യാൻ (QR വഴി):</strong> ഒരു ഉപകരണത്തിൽ (ഉദാ: PC) Dahara തുറന്ന് കാണുന്ന QR കോഡ് മറ്റേ ഉപകരണത്തിലെ ക്യാമറ വഴി സ്കാൻ ചെയ്ത് ലിങ്ക് ഓപ്പൺ ചെയ്യുക. സ്വയം കണക്റ്റാകും.</li>
+      <li><strong>മാനുവൽ കണക്ഷൻ:</strong> QR സ്കാൻ ചെയ്യാൻ സാധിച്ചില്ലെങ്കിൽ, മറ്റേ ഡിവൈസിലെ <em>Dahara ID</em> കോപ്പി ചെയ്ത് മുകളിലെ ബോക്സിൽ നൽകി <em>'കണക്റ്റ് ചെയ്യുക'</em> ക്ലിക്ക് ചെയ്യുക.</li>
+      <li><strong>ഫയൽ അയക്കാൻ:</strong> കണക്ഷൻ റെഡിയാകുമ്പോൾ ഫയൽ തിരഞ്ഞെടുക്കാനുള്ള ഓപ്ഷൻ തെളിയും. ഫയൽ സെലക്ട് ചെയ്ത് <em>'ഫയൽ അയക്കുക'</em> അമർത്തുക.</li>
+      <li><strong>ഡൗൺലോഡ് ചെയ്യാൻ:</strong> ഫയൽ ലഭിക്കുന്ന ഉപകരണത്തിൽ വരുന്ന <em>'ഡൗൺലോഡ് ചെയ്യുക'</em> ബട്ടൺ ക്ലിക്ക് ചെയ്ത് ഫയൽ ഫോണിലോ കമ്പ്യൂട്ടറിലോ സേവ് ചെയ്യാം.</li>
+    </ol>
+    
+    <hr style="border: 0; border-top: 1px dashed #b8daff; margin: 10px 0;">
+    
+    <ul>
+      <li><strong>സവിശേഷതകൾ:</strong> ഫയലുകൾ യാതൊരു തേർഡ്-പാർട്ടി സെർവറിലും സ്റ്റോർ ചെയ്യുന്നില്ല. എൻഡ്-ടു-എൻഡ് WebRTC വഴി നേരിട്ടാണ് കൈമാറുന്നത്.</li>
+      <li>രണ്ട് ഉപകരണങ്ങളും ഒരേ വൈഫൈയിൽ ആകണമെന്നില്ല; മൊബൈൽ ഡാറ്റയിലും തടസ്സമില്ലാതെ പ്രവർത്തിക്കും.</li>
+    </ul>
+  </div>
+
   <script>
     const statusText = document.getElementById('status');
     const myIdDisplay = document.getElementById('my-id');
@@ -54,22 +86,21 @@
     const peer = new Peer();
     let conn = null;
 
-    // 1. Peer ഓപ്പൺ ചെയ്യുമ്പോൾ QR കോഡ് ജനറേറ്റ് ചെയ്യുന്നു
+    // 1. Peer ഓപ്പൺ ചെയ്യുമ്പോൾ QR കോഡ് നിർമ്മിക്കുന്നു
     peer.on('open', (id) => {
       myIdDisplay.innerText = id;
       statusText.innerText = "സ്റ്റാറ്റസ്: കണക്ഷനായി കാത്തിരിക്കുന്നു...";
 
-      // നിലവിലെ പേജിന്റെ URL-ലേക്ക് ID ചേർത്താണ് QR നിർമ്മിക്കുന്നത്
       const currentUrl = window.location.href.split('?')[0];
       const connectUrl = `${currentUrl}?connect=${id}`;
 
       new QRCode(document.getElementById("qrcode"), {
         text: connectUrl,
-        width: 160,
-        height: 160
+        width: 150,
+        height: 150
       });
 
-      // URL-ൽ connect പാരാമീറ്റർ ഉണ്ടെങ്കിൽ (മൊബൈലിൽ സ്കാൻ ചെയ്യുമ്പോൾ) സ്വയം കണക്റ്റ് ആകുന്നു
+      // QR സ്കാൻ ചെയ്താണ് വന്നതെങ്കിൽ ഓട്ടോമാറ്റിക് കണക്റ്റ് ചെയ്യുക
       const urlParams = new URLSearchParams(window.location.search);
       const autoConnectId = urlParams.get('connect');
       if (autoConnectId) {
@@ -86,7 +117,7 @@
 
     function manualConnect() {
       const targetId = document.getElementById('target-id').value.trim();
-      if (!targetId) return alert("Target ID നൽകുക");
+      if (!targetId) return alert("Dahara ID നൽകുക");
       connectToPeer(targetId);
     }
 
@@ -99,7 +130,7 @@
     // 3. കണക്ഷൻ ഇവന്റുകൾ
     function setupConnectionHandlers() {
       conn.on('open', () => {
-        statusText.innerText = "സ്റ്റാറ്റസ്: വിജയകരമായി കണക്റ്റായി! ഇനി ഫയൽ അയക്കാം.";
+        statusText.innerText = "സ്റ്റാറ്റസ്: Dahara കണക്റ്റഡ്! ഫയൽ അയക്കാം.";
         fileInput.disabled = false;
         sendBtn.disabled = false;
       });
@@ -111,13 +142,13 @@
           
           downloadArea.innerHTML = `
             <div class="box" style="background: #e8f5e9; border-color: #28a745;">
-              <p><strong>ഫയൽ ലഭിച്ചു:</strong> ${data.fileName}</p>
+              <p style="margin: 5px 0;"><strong>ലഭിച്ച ഫയൽ:</strong> ${data.fileName}</p>
               <a href="${url}" download="${data.fileName}">
                 <button class="success-btn">ഡൗൺലോഡ് ചെയ്യുക</button>
               </a>
             </div>
           `;
-          statusText.innerText = "സ്റ്റാറ്റസ്: ഫയൽ ലഭിച്ചു!";
+          statusText.innerText = "സ്റ്റാറ്റസ്: ഫയൽ വിജയകരമായി ലഭിച്ചു!";
         }
       });
 

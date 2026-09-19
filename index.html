@@ -2,11 +2,9 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI Light QR Share</title>
-    <!-- QR Code, HTML5 QrCode, ഒപ്പം കോഡ് ചുരുക്കാൻ LZ-String ലൈബ്രറികൾ -->
+    <title>KUMBIDI Micro QR Share</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
         .container { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left; }
@@ -20,7 +18,6 @@
         input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 13px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; text-align: center; }
         #qrcode, #answer-qrcode { display: flex; justify-content: center; margin: 15px 0; background: white; padding: 10px; border-radius: 8px; }
-        #qrcode img, #answer-qrcode img { margin: auto; }
         #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-top: 10px; }
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; display: none; }
         .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.05s ease; }
@@ -30,36 +27,35 @@
 <body>
 
 <div class="container">
-    <h2>KUMBIDI Light QR Share</h2>
-    <p class="sub">എളുപ്പത്തിൽ സ്കാൻ ചെയ്യാവുന്ന കംപ്രസ്ഡ് ക്യൂആർ ഷെയർ</p>
+    <h2>KUMBIDI Micro QR</h2>
+    <p class="sub">പെട്ടെന്ന് സ്കാൻ ചെയ്യാവുന്ന ചെറിയ QR കോഡ്</p>
 
     <div class="btn-group">
         <button onclick="showSender()">Send (അയക്കാൻ)</button>
         <button class="secondary" onclick="showReceiver()">Receive (സ്വീകരിക്കാൻ)</button>
     </div>
 
-    <!-- SENDER SECTION -->
+    <!-- SENDER -->
     <div id="sender-section" class="card">
         <h3>1. ഫയൽ തിരഞ്ഞെടുക്കുക:</h3>
         <input type="file" id="fileInput">
-        <button onclick="createOffer()" style="background: #ffc107; color: #000;">ലളിതമായ QR കോഡ് ഉണ്ടാക്കുക</button>
+        <button onclick="createOffer()" style="background: #ffc107; color: #000;">ചെറിയ QR ഉണ്ടാക്കുക</button>
         
         <div id="sender-step2" style="display:none; margin-top: 15px;">
-            <p style="font-size: 13px;">ഈ ക്യൂആർ കോഡ് റിസീവർ സ്കാൻ ചെയ്യട്ടെ:</p>
+            <p style="font-size: 13px;">ഈ ചെറിയ QR കോഡ് റിസീവർ സ്കാൻ ചെയ്യട്ടെ:</p>
             <div id="qrcode"></div>
-            
             <button onclick="startScannerForAnswer()" class="secondary" style="margin-top: 10px;">റിസീവറുടെ QR സ്കാൻ ചെയ്യുക</button>
         </div>
     </div>
 
-    <!-- RECEIVER SECTION -->
+    <!-- RECEIVER -->
     <div id="receiver-section" class="card">
         <h3>കണക്റ്റ് ചെയ്യാൻ:</h3>
-        <button onclick="startScannerForOffer()" class="secondary">സെൻഡറുടെ QR കോഡ് സ്കാൻ ചെയ്യുക</button>
+        <button onclick="startScannerForOffer()" class="secondary">സെൻഡറുടെ QR സ്കാൻ ചെയ്യുക</button>
         <div id="reader"></div>
 
         <div id="receiver-step2" style="display:none; margin-top: 15px;">
-            <p style="font-size: 13px; color: #28a745; font-weight: bold;">ലഭിച്ചു! ഈ മറുപടി QR കോഡ് സെൻഡറെ സ്കാൻ ചെയ്യാൻ കാണിക്കുക:</p>
+            <p style="font-size: 13px; color: #28a745; font-weight: bold;">ലഭിച്ചു! ഈ ചെറിയ QR കോഡ് സെൻഡറെ കാണിക്കുക:</p>
             <div id="answer-qrcode"></div>
         </div>
     </div>
@@ -94,25 +90,42 @@
         pc = new RTCPeerConnection({ iceServers: [] });
     }
 
-    function waitForICE(callback) {
-        if (pc.iceGatheringState === 'complete') {
-            callback();
-        } else {
-            function checkState() {
-                if (pc.iceGatheringState === 'complete') {
-                    pc.removeEventListener('icegatheringstatechange', checkState);
-                    callback();
-                }
+    // SDP കോഡ് ചുരുക്കി അത്യാവശ്യ ഭാഗം മാത്രം എടുക്കുന്ന ഫങ്ഷൻ
+    function compactSDP(sdpObj) {
+        let candidateLine = "";
+        const lines = sdpObj.sdp.split('\r\n');
+        for (let line of lines) {
+            if (line.startsWith('a=candidate') && (line.includes('typ host') || line.includes('.local'))) {
+                candidateLine = line;
+                break;
             }
-            pc.addEventListener('icegatheringstatechange', checkState);
         }
+        return JSON.stringify({
+            t: sdpObj.type,
+            u: pc.localDescription.sctp ? 5000 : 0,
+            c: candidateLine,
+            f: getFingerprint(sdpObj.sdp)
+        });
     }
 
-    // --- SENDER ---
+    function getFingerprint(sdp) {
+        const match = sdp.match(/a=fingerprint:sha-256\s+([A-F0-9:]+)/i);
+        return match ? match[1] : "";
+    }
+
+    function expandSDP(compactObj, type) {
+        return {
+            type: type,
+            sdp: `v=0\r\no=- 0 2 IN IP4 127.0.0.1\r\ns=-\r\nt=0 0\r\na=group:BUNDLE 0\r\nm=application 9 UDP/DTLS/SCTP webrtc-datachannel\r\nc=IN IP4 0.0.0.0\r\n${compactObj.c}\r\na=ice-ufrag:test\r\na=ice-pwd:testpwd\r\na=fingerprint:sha-256 ${compactObj.f}\r\na=setup:actpass\r\na=mid:0\r\na=sctp-port:5000\r\n`
+        };
+    }
+
+    let compactOffer, compactAnswer;
+
     function createOffer() {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) {
-            alert("ദയവായി ഫയൽ തിരഞ്ഞെടുക്കുക!");
+            alert("ഫയൽ തിരഞ്ഞെടുക്കൂ!");
             return;
         }
         selectedFile = fileInput.files[0];
@@ -121,91 +134,74 @@
         dataChannel = pc.createDataChannel("fileTransfer");
         setupDataChannel();
 
-        pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
-            waitForICE(() => {
-                // ഡാറ്റ കംപ്രസ് ചെയ്ത് വലിപ്പം കുറയ്ക്കുന്നു
-                const jsonStr = JSON.stringify(pc.localDescription);
-                const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
-
+        pc.createOffer().then(o => pc.setLocalDescription(o)).then(() => {
+            setTimeout(() => {
+                compactOffer = compactSDP(pc.localDescription);
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById("qrcode"), {
-                    text: compressedData,
-                    width: 230,
-                    height: 230,
-                    colorDark: "#000000",
-                    colorLight: "#ffffff",
-                    correctLevel: QRCode.CorrectLevel.L // കുറഞ്ഞ എറർ കറക്ഷൻ ഉപയോഗിച്ച് ക്യൂആർ കോഡ് കൂടുതൽ ലളിതമാക്കുന്നു
+                    text: compactOffer,
+                    width: 180,
+                    height: 180,
+                    correctLevel: QRCode.CorrectLevel.L
                 });
                 document.getElementById('sender-step2').style.display = 'block';
-                document.getElementById('status').innerText = "QR കോഡ് സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്.";
-            });
+                document.getElementById('status').innerText = "ചെറിയ QR കോഡ് സ്കാൻ ചെയ്യാം.";
+            }, 800);
         });
     }
 
     function startScannerForAnswer() {
         document.getElementById('sender-step2').innerHTML = '<div id="reader-ans" style="width:100%;"></div>';
         const scanner = new Html5Qrcode("reader-ans");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, decodedText => {
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 180 }, decodedText => {
             scanner.stop();
-            const decompressedStr = LZString.decompressFromEncodedURIComponent(decodedText);
-            const answer = JSON.parse(decompressedStr);
-            pc.setRemoteDescription(answer).then(() => {
-                document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...";
+            const ansObj = JSON.parse(decodedText);
+            const fullAns = expandSDP(ansObj, 'answer');
+            pc.setRemoteDescription(fullAns).then(() => {
+                document.getElementById('status').innerText = "കണക്റ്റ് ആകുന്നു...";
             });
         }, err => {});
     }
 
-    // --- RECEIVER ---
     function startScannerForOffer() {
         createPeerConnection();
-        pc.ondatachannel = event => {
-            dataChannel = event.channel;
+        pc.ondatachannel = e => {
+            dataChannel = e.channel;
             setupReceiverDataChannel();
         };
 
         html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, decodedText => {
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 180 }, decodedText => {
             html5QrCode.stop().then(() => {
                 document.getElementById('reader').style.display = 'none';
-                
-                const decompressedStr = LZString.decompressFromEncodedURIComponent(decodedText);
-                const offer = JSON.parse(decompressedStr);
+                const offObj = JSON.parse(decodedText);
+                const fullOff = expandSDP(offObj, 'offer');
 
-                pc.setRemoteDescription(offer).then(() => {
-                    return pc.createAnswer();
-                }).then(answer => pc.setLocalDescription(answer)).then(() => {
-                    waitForICE(() => {
-                        const jsonStr = JSON.stringify(pc.localDescription);
-                        const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
-
+                pc.setRemoteDescription(fullOff).then(() => pc.createAnswer()).then(a => pc.setLocalDescription(a)).then(() => {
+                    setTimeout(() => {
+                        compactAnswer = compactSDP(pc.localDescription);
                         document.getElementById('answer-qrcode').innerHTML = "";
                         new QRCode(document.getElementById("answer-qrcode"), {
-                            text: compressedData,
-                            width: 230,
-                            height: 230,
-                            colorDark: "#000000",
-                            colorLight: "#ffffff",
+                            text: compactAnswer,
+                            width: 180,
+                            height: 180,
                             correctLevel: QRCode.CorrectLevel.L
                         });
                         document.getElementById('receiver-step2').style.display = 'block';
-                        document.getElementById('status').innerText = "മറുപടി QR കോഡ് സെൻഡറെ കാണിക്കുക.";
-                    });
+                        document.getElementById('status').innerText = "ഈ QR കോഡ് സെൻഡറെ കാണിക്കുക.";
+                    }, 800);
                 });
             });
         }, err => {});
     }
 
-    // --- DATA TRANSFER ---
     function setupDataChannel() {
         dataChannel.onopen = () => {
             document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ അയക്കുന്നു...";
             document.getElementById('progressBar').style.display = 'block';
             
             dataChannel.send(JSON.stringify({
-                type: 'meta',
-                name: selectedFile.name,
-                size: selectedFile.size,
-                fileType: selectedFile.type
+                type: 'meta', name: selectedFile.name, size: selectedFile.size, fileType: selectedFile.type
             }));
 
             const chunkSize = 16384;
@@ -222,13 +218,11 @@
                 if (offset < selectedFile.size) {
                     readNextChunk();
                 } else {
-                    document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു!";
+                    document.getElementById('status').innerText = "ഫയൽ അയച്ചു തീർന്നു!";
                 }
             };
-
             function readNextChunk() {
-                const slice = selectedFile.slice(offset, offset + chunkSize);
-                reader.readAsArrayBuffer(slice);
+                reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
             }
             readNextChunk();
         };
@@ -237,17 +231,16 @@
     let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
     function setupReceiverDataChannel() {
         dataChannel.onopen = () => {
-            document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കുന്നു...";
+            document.getElementById('status').innerText = "കണക്റ്റ് ആയി! സ്വീകരിക്കുന്നു...";
             document.getElementById('progressBar').style.display = 'block';
         };
-
-        dataChannel.onmessage = event => {
-            if (typeof event.data === 'string') {
-                const data = JSON.parse(event.data);
-                if (data.type === 'meta') fileMeta = data;
+        dataChannel.onmessage = e => {
+            if (typeof e.data === 'string') {
+                const d = JSON.parse(e.data);
+                if (d.type === 'meta') fileMeta = d;
             } else {
-                receivedBuffers.push(event.data);
-                receivedSize += event.data.byteLength;
+                receivedBuffers.push(e.data);
+                receivedSize += e.data.byteLength;
                 let percent = Math.round((receivedSize / fileMeta.size) * 100);
                 document.getElementById('progressFill').style.width = percent + '%';
                 document.getElementById('speedInfo').innerText = `Progress: ${percent}%`;
@@ -256,9 +249,7 @@
                     const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
                     const url = URL.createObjectURL(blob);
                     const a = document.createElement('a');
-                    a.href = url;
-                    a.download = fileMeta.name;
-                    a.click();
+                    a.href = url; a.download = fileMeta.name; a.click();
                     document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി!";
                 }
             }

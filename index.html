@@ -2,10 +2,11 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI QR Share</title>
-    <!-- QR കോഡ് ജനറേറ്റ് ചെയ്യാനും സ്കാൻ ചെയ്യാനുമുള്ള ലൈബ്രറികൾ -->
+    <title>KUMBIDI Light QR Share</title>
+    <!-- QR Code, HTML5 QrCode, ഒപ്പം കോഡ് ചുരുക്കാൻ LZ-String ലൈബ്രറികൾ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html5-qrcode/2.3.8/html5-qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/lz-string/1.4.4/lz-string.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
         .container { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left; }
@@ -18,8 +19,8 @@
         button.secondary:hover { background: #218838; }
         input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 13px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; text-align: center; }
-        #qrcode { display: flex; justify-content: center; margin: 15px 0; background: white; padding: 10px; border-radius: 8px; }
-        #qrcode img { margin: auto; }
+        #qrcode, #answer-qrcode { display: flex; justify-content: center; margin: 15px 0; background: white; padding: 10px; border-radius: 8px; }
+        #qrcode img, #answer-qrcode img { margin: auto; }
         #reader { width: 100%; border-radius: 8px; overflow: hidden; margin-top: 10px; }
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; display: none; }
         .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.05s ease; }
@@ -29,8 +30,8 @@
 <body>
 
 <div class="container">
-    <h2>KUMBIDI QR Share</h2>
-    <p class="sub">ക്യൂആർ കോഡ് വഴി എളുപ്പത്തിൽ ഫയൽ ഷെയർ ചെയ്യാം</p>
+    <h2>KUMBIDI Light QR Share</h2>
+    <p class="sub">എളുപ്പത്തിൽ സ്കാൻ ചെയ്യാവുന്ന കംപ്രസ്ഡ് ക്യൂആർ ഷെയർ</p>
 
     <div class="btn-group">
         <button onclick="showSender()">Send (അയക്കാൻ)</button>
@@ -41,14 +42,13 @@
     <div id="sender-section" class="card">
         <h3>1. ഫയൽ തിരഞ്ഞെടുക്കുക:</h3>
         <input type="file" id="fileInput">
-        <button onclick="createOffer()" style="background: #ffc107; color: #000;">ക്യൂആർ കോഡ് ഉണ്ടാക്കുക</button>
+        <button onclick="createOffer()" style="background: #ffc107; color: #000;">ലളിതമായ QR കോഡ് ഉണ്ടാക്കുക</button>
         
         <div id="sender-step2" style="display:none; margin-top: 15px;">
             <p style="font-size: 13px;">ഈ ക്യൂആർ കോഡ് റിസീവർ സ്കാൻ ചെയ്യട്ടെ:</p>
             <div id="qrcode"></div>
             
-            <p style="font-size: 12px; margin-top: 10px;">റിസീവർ തരുന്ന കോഡ് (അല്ലെങ്കിൽ QR) ഇവിടെ നൽകുക:</p>
-            <button onclick="startScannerForAnswer()" class="secondary">റിസീവറുടെ QR സ്കാൻ ചെയ്യുക</button>
+            <button onclick="startScannerForAnswer()" class="secondary" style="margin-top: 10px;">റിസീവറുടെ QR സ്കാൻ ചെയ്യുക</button>
         </div>
     </div>
 
@@ -59,7 +59,7 @@
         <div id="reader"></div>
 
         <div id="receiver-step2" style="display:none; margin-top: 15px;">
-            <p style="font-size: 13px; color: #28a745; font-weight: bold;">സെൻഡറുടെ കോഡ് ലഭിച്ചു! താഴെയുള്ള ക്യൂആർ കോഡ് സെൻഡറെ സ്കാൻ ചെയ്യാൻ കാണിക്കുക:</p>
+            <p style="font-size: 13px; color: #28a745; font-weight: bold;">ലഭിച്ചു! ഈ മറുപടി QR കോഡ് സെൻഡറെ സ്കാൻ ചെയ്യാൻ കാണിക്കുക:</p>
             <div id="answer-qrcode"></div>
         </div>
     </div>
@@ -123,11 +123,18 @@
 
         pc.createOffer().then(offer => pc.setLocalDescription(offer)).then(() => {
             waitForICE(() => {
+                // ഡാറ്റ കംപ്രസ് ചെയ്ത് വലിപ്പം കുറയ്ക്കുന്നു
+                const jsonStr = JSON.stringify(pc.localDescription);
+                const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
+
                 document.getElementById('qrcode').innerHTML = "";
                 new QRCode(document.getElementById("qrcode"), {
-                    text: JSON.stringify(pc.localDescription),
-                    width: 220,
-                    height: 220
+                    text: compressedData,
+                    width: 230,
+                    height: 230,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.L // കുറഞ്ഞ എറർ കറക്ഷൻ ഉപയോഗിച്ച് ക്യൂആർ കോഡ് കൂടുതൽ ലളിതമാക്കുന്നു
                 });
                 document.getElementById('sender-step2').style.display = 'block';
                 document.getElementById('status').innerText = "QR കോഡ് സ്കാൻ ചെയ്യാൻ തയ്യാറാണ്.";
@@ -136,11 +143,12 @@
     }
 
     function startScannerForAnswer() {
-        document.getElementById('sender-step2').innerHTML = '<div id="reader-ans"></div>';
+        document.getElementById('sender-step2').innerHTML = '<div id="reader-ans" style="width:100%;"></div>';
         const scanner = new Html5Qrcode("reader-ans");
-        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, decodedText => {
+        scanner.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, decodedText => {
             scanner.stop();
-            const answer = JSON.parse(decodedText);
+            const decompressedStr = LZString.decompressFromEncodedURIComponent(decodedText);
+            const answer = JSON.parse(decompressedStr);
             pc.setRemoteDescription(answer).then(() => {
                 document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...";
             });
@@ -156,19 +164,28 @@
         };
 
         html5QrCode = new Html5Qrcode("reader");
-        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 200 }, decodedText => {
+        html5QrCode.start({ facingMode: "environment" }, { fps: 10, qrbox: 220 }, decodedText => {
             html5QrCode.stop().then(() => {
                 document.getElementById('reader').style.display = 'none';
-                const offer = JSON.parse(decodedText);
+                
+                const decompressedStr = LZString.decompressFromEncodedURIComponent(decodedText);
+                const offer = JSON.parse(decompressedStr);
+
                 pc.setRemoteDescription(offer).then(() => {
                     return pc.createAnswer();
                 }).then(answer => pc.setLocalDescription(answer)).then(() => {
                     waitForICE(() => {
+                        const jsonStr = JSON.stringify(pc.localDescription);
+                        const compressedData = LZString.compressToEncodedURIComponent(jsonStr);
+
                         document.getElementById('answer-qrcode').innerHTML = "";
                         new QRCode(document.getElementById("answer-qrcode"), {
-                            text: JSON.stringify(pc.localDescription),
-                            width: 220,
-                            height: 220
+                            text: compressedData,
+                            width: 230,
+                            height: 230,
+                            colorDark: "#000000",
+                            colorLight: "#ffffff",
+                            correctLevel: QRCode.CorrectLevel.L
                         });
                         document.getElementById('receiver-step2').style.display = 'block';
                         document.getElementById('status').innerText = "മറുപടി QR കോഡ് സെൻഡറെ കാണിക്കുക.";

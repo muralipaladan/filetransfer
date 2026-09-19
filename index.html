@@ -49,7 +49,7 @@
     <!-- RECEIVER SECTION -->
     <div id="receiver-section" class="card">
         <h3>ഫയൽ സ്വീകരിക്കാൻ:</h3>
-        <p style="font-size: 13px; color: #555;">ഹോട്ട്‌സ്പോട്ട് വൈഫൈ കണക്റ്റ് ചെയ്ത ശേഷം താഴെ കോഡ് നൽകുക.</p>
+        <p style="font-size: 13px; color: #555;">ഒരേ വൈഫൈയിലോ ഹോട്ട്‌സ്പോട്ടിലോ കണക്റ്റ് ചെയ്ത ശേഷം താഴെ കോഡ് നൽകുക.</p>
         <input type="text" id="manualCodeInput" placeholder="6 അക്ക കോഡ് ടൈപ്പ് ചെയ്യുക" maxlength="6">
         <button onclick="connectToSender()" class="secondary">കണക്റ്റ് ചെയ്ത് ഡൗൺലോഡ് ചെയ്യുക</button>
     </div>
@@ -65,11 +65,11 @@
     </div>
 
     <div class="instructions">
-        <strong>ഉപയോഗിക്കേണ്ട വിധം (How to Use):</strong>
+        <strong>ഉപയോഗിക്കേണ്ട വിധം (User Manual):</strong>
         <ol style="padding-left: 15px; margin: 0;">
-            <li><strong>Hotspot Setup:</strong> ഏതെങ്കിലും ഒരു ഡിവൈസിൽ (Mobile അല്ലെങ്കിൽ Laptop) ഹോട്ട്‌സ്പോട്ട് ഓൺ ചെയ്യുക. മറ്റേ ഡിവൈസ് ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക.</li>
-            <li><strong>Open GitHub Page:</strong> രണ്ട് ഡിവൈസുകളിലും ബ്രൗവറിൽ നിങ്ങളുടെ ഗിറ്റ്‌ഹബ് ലിങ്ക് ഓപ്പൺ ചെയ്യുക.</li>
-            <li><strong>Transfer:</strong> സെൻഡർ കോഡ് ജനറേറ്റ് ചെയ്ത് അത് റിസീവർ ഡിവൈസിൽ നൽകി ഫയൽ കൈമാറുക.</li>
+            <li><strong>Common Network Setup:</strong> രണ്ട് ഡിവൈസുകളും (Mobile & PC / Mobile & Mobile / PC & PC) ഒരേ Wi-Fi റൂട്ടറിലോ അല്ലെങ്കിൽ ഒരു ഡിവൈസിന്റെ Hotspot-ലോ കണക്റ്റ് ചെയ്യുക (ഇത് ഒരേ ലോക്കൽ നെറ്റ്‌വർക്കിൽ പ്രവർത്തിക്കാൻ ഉറപ്പാക്കുന്നു).</li>
+            <li><strong>Open App:</strong> എല്ലാ ഡിവൈസുകളിലും ബ്രൗവറിൽ നിങ്ങളുടെ ഗിറ്റ്‌ഹബ് ലിങ്ക് ഓപ്പൺ ചെയ്യുക.</li>
+            <li><strong>Transfer Process:</strong> സെൻഡർ ഫയൽ തിരഞ്ഞെടുത്ത് കോഡ് ജനറേറ്റ് ചെയ്യുക. ആ കോഡ് റിസീവർ ഡിവൈസിൽ നൽകി കണക്റ്റ് ചെയ്താൽ ഫയൽ അതിവേഗം കൈമാറപ്പെടും.</li>
         </ol>
     </div>
 </div>
@@ -211,7 +211,7 @@
             });
 
             conn.on('error', (err) => {
-                document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു! ഹോട്ട്‌സ്പോട്ട് കണക്ഷൻ പരിശോധിക്കുക.";
+                document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു! ഒരേ നെറ്റ്‌വർക്കിലാണോ എന്ന് പരിശോധിക്കുക.";
             });
         });
     }

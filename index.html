@@ -2,8 +2,7 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI Local P2P Share</title>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <title>KUMBIDI Pure Local Direct Share</title>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
         .container { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left; }
@@ -16,9 +15,7 @@
         button.secondary:hover { background: #218838; }
         input[type="file"], input[type="text"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 15px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; text-align: center; }
-        .code-display { font-size: 24px; font-weight: bold; color: #28a745; background: #e9f7ef; padding: 10px; border-radius: 6px; margin: 10px 0; letter-spacing: 3px; }
-        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; display: none; }
-        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.05s ease; }
+        .code-display { font-size: 20px; font-weight: bold; color: #28a745; background: #e9f7ef; padding: 100px 10px; border-radius: 6px; margin: 10px 0; word-break: break-all; }
         #status { font-weight: bold; color: #d9534f; font-size: 14px; text-align: center; margin-top: 10px; }
         .instructions { font-size: 12px; color: #555; background: #fff3cd; padding: 12px; border-radius: 6px; border: 1px solid #ffeeba; margin-top: 15px; line-height: 1.6; }
     </style>
@@ -26,195 +23,59 @@
 <body>
 
 <div class="container">
-    <h2>KUMBIDI Local Share</h2>
-    <p class="sub">ഓഫ്‌ലൈൻ ലോക്കൽ നെറ്റ്‌വർക്ക് ഫയൽ ഷെയർ</p>
+    <h2>KUMBIDI Direct Share</h2>
+    <p class="sub">ഇന്റർനെറ്റ് ഇല്ലാത്ത ലോക്കൽ കണക്ഷൻ</p>
+
+    <div class="instructions" style="margin-bottom: 15px; background: #d1ecf1; border-color: #bee5eb; color: #0c5460;">
+        <strong>പ്രധാന നിർദ്ദേശം:</strong> ഈ ആപ്പ് പൂർണ്ണമായും ഓഫ്‌ലൈനായി പ്രവർത്തിക്കാൻ, ഹോട്ട്‌സ്പോട്ട് നൽകിയിരിക്കുന്ന ഫോണിൽ ഒരു ചെറിയ ലോക്കൽ ആപ്പ് (Python അല്ലെങ്കിൽ Termux വഴി) പ്രവർത്തിക്കേണ്ടതുണ്ട്. ഗിറ്റ്‌ഹബ് പേജിൽ മാത്രം ഹോസ്റ്റ് ചെയ്യുമ്പോൾ ബ്രൗസർ സെക്യൂരിറ്റി കാരണം പുറമെ നിന്നുള്ള സിഗ്നലിങ് ഇല്ലാതെ നേരിട്ട് കണക്റ്റ് ചെയ്യാൻ സാധിക്കില്ല.
+    </div>
 
     <div class="btn-group">
-        <button onclick="showSender()">Send (ഫയൽ അയക്കാൻ)</button>
-        <button class="secondary" onclick="showReceiver()">Receive (സ്വീകരിക്കാൻ)</button>
+        <button onclick="showSender()">Send (സെൻഡർ)</button>
+        <button class="secondary" onclick="showReceiver()">Receive (റിസീവർ)</button>
     </div>
 
     <!-- SENDER SECTION -->
     <div id="sender-section" class="card">
-        <h3>ഫയൽ സെലക്ട് ചെയ്യുക:</h3>
+        <h3>ഫയൽ തിരഞ്ഞെടുക്കുക:</h3>
         <input type="file" id="fileInput">
-        <button onclick="startHosting()" style="background: #ffc107; color: #000;">കണക്ഷൻ കോഡ് ഉണ്ടാക്കുക</button>
-        
-        <div id="host-info" style="display:none; margin-top: 15px;">
-            <p style="font-size: 13px; color: #333;">മറ്റേ ഡിവൈസിൽ നൽകേണ്ട 6 അക്ക കോഡ്:</p>
-            <div class="code-display" id="numericCodeDisplay">------</div>
-        </div>
+        <p style="font-size: 12px; color: #666;">ലോക്കൽ ഐപി അഡ്രസ് വഴി നേരിട്ട് ഡാറ്റ കൈമാറാം.</p>
     </div>
 
     <!-- RECEIVER SECTION -->
     <div id="receiver-section" class="card">
-        <h3>ഫയൽ സ്വീകരിക്കാൻ:</h3>
-        <p style="font-size: 13px; color: #555;">ഹോട്ട്‌സ്പോട്ടിൽ കണക്റ്റ് ചെയ്ത ശേഷം താഴെ കോഡ് നൽകുക.</p>
-        <input type="text" id="manualCodeInput" placeholder="6 അക്ക കോഡ് ടൈപ്പ് ചെയ്യുക" maxlength="6">
-        <button onclick="connectToSender()" class="secondary">കണക്റ്റ് ചെയ്ത് ഡൗൺലോഡ് ചെയ്യുക</button>
+        <h3>കണക്റ്റ് ചെയ്യാൻ:</h3>
+        <input type="text" id="hostIpInput" placeholder="സെൻഡറുടെ IP അഡ്രസ് നൽകുക (ഉദാ: 192.168.43.1)">
+        <button onclick="connectToHost()" class="secondary">കണക്റ്റ് ചെയ്യുക</button>
     </div>
 
-    <!-- TRANSFER STATUS -->
+    <!-- STATUS -->
     <div id="transfer-card" class="card" style="display:block;">
         <h3>സ്റ്റാറ്റസ്</h3>
-        <p id="status">ഒരു ഓപ്ഷൻ തിരഞ്ഞെടുക്കൂ...</p>
-        <div class="progress-bar" id="progressBar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <p id="speedInfo" style="font-size: 12px; color: #666; margin-top: 5px;"></p>
-    </div>
-
-    <div class="instructions">
-        <strong>ഉപയോഗിക്കേണ്ട വിധം (User Manual):</strong>
-        <ol style="padding-left: 15px; margin: 0;">
-            <li><strong>Hotspot Connection:</strong> ഒരു ഡിവൈസിൽ ഹോട്ട്‌സ്പോട്ട് ഓൺ ചെയ്യുക, മറ്റേ ഡിവൈസ് ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക (ഇന്റർനെറ്റ് ആവശ്യമില്ല).</li>
-            <li><strong>Open Page:</strong> രണ്ട് ഡിവൈസുകളിലും ബ്രൗസർ തുറന്ന് ഗിറ്റ്‌ഹബ് ലിങ്ക് ഓപ്പൺ ചെയ്യുക (പേജ് ലോഡ് ആകാൻ മാത്രം ആദ്യം ഇന്റർനെറ്റ് ഉണ്ടായിരിക്കണം, പിന്നീട് ഇന്റർനെറ്റ് ഓഫ് ചെയ്യാം).</li>
-            <li><strong>Transfer:</strong> സെൻഡർ കോഡ് ജനറേറ്റ് ചെയ്ത് റിസീവറിന് നൽകി ഫയൽ കൈമാറുക.</li>
-        </ol>
+        <p id="status">ഡിവൈസ് തയ്യാറാണ്...</p>
     </div>
 </div>
 
 <script>
-    let activePeer = null;
-
     function showSender() {
         document.getElementById('sender-section').style.display = 'block';
         document.getElementById('receiver-section').style.display = 'none';
+        document.getElementById('status').innerText = "സെൻഡർ മോഡ് സജീവമാണ്.";
     }
 
     function showReceiver() {
         document.getElementById('sender-section').style.display = 'none';
         document.getElementById('receiver-section').style.display = 'block';
+        document.getElementById('status').innerText = "റിസീവർ മോഡ് സജീവമാണ്.";
     }
 
-    function generateCode() {
-        return Math.floor(100000 + Math.random() * 900000).toString();
-    }
-
-    function startHosting() {
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput.files.length === 0) {
-            alert("ദയവായി ഫയൽ തിരഞ്ഞെടുക്കുക!");
+    function connectToHost() {
+        const ip = document.getElementById('hostIpInput').value.trim();
+        if(!ip) {
+            alert("ദയവായി ഐപി അഡ്രസ് നൽകുക!");
             return;
         }
-
-        document.getElementById('status').innerText = "കണക്ഷൻ സജ്ജമാക്കുന്നു...";
-        if(activePeer) { activePeer.destroy(); }
-
-        const code = generateCode();
-        const peerId = "kumbidi_local_" + code;
-
-        // ലോക്കൽ നെറ്റ്‌വർക്കിനായി STUN സെർവറുകൾ പൂർണ്ണമായും ഒഴിവാക്കി വേഗത്തിലുള്ള കണക്ഷൻ നൽകുന്നു
-        activePeer = new Peer(peerId);
-
-        activePeer.on('open', (id) => {
-            document.getElementById('numericCodeDisplay').innerText = code;
-            document.getElementById('host-info').style.display = 'block';
-            document.getElementById('status').innerText = "തയ്യാറാണ്! മറ്റേ ഡിവൈസിൽ കോഡ് നൽകുക.";
-        });
-
-        activePeer.on('error', (err) => {
-            if(err.type === 'unavailable-id') {
-                startHosting();
-            } else {
-                document.getElementById('status').innerText = "എറർ: " + err.type;
-            }
-        });
-
-        activePeer.on('connection', (conn) => {
-            document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ അയക്കുന്നു...";
-            const file = fileInput.files[0];
-            
-            conn.on('open', () => {
-                conn.send({
-                    type: 'meta',
-                    fileName: file.name,
-                    fileType: file.type,
-                    size: file.size
-                });
-
-                const chunkSize = 65536; 
-                const reader = new FileReader();
-                let offset = 0;
-
-                reader.onload = function(e) {
-                    conn.send({
-                        type: 'chunk',
-                        payload: e.target.result
-                    });
-                    offset += e.target.result.byteLength;
-                    
-                    if (offset < file.size) {
-                        readNextChunk();
-                    } else {
-                        document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു!";
-                    }
-                };
-
-                function readNextChunk() {
-                    const slice = file.slice(offset, offset + chunkSize);
-                    reader.readAsArrayBuffer(slice);
-                }
-
-                readNextChunk();
-            });
-        });
-    }
-
-    function connectToSender() {
-        const code = document.getElementById('manualCodeInput').value.trim();
-        if(code.length !== 6) {
-            alert("ശരിയായ 6 അക്ക കോഡ് നൽകുക!");
-            return;
-        }
-
-        document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...";
-        const peerIdToConnect = "kumbidi_local_" + code;
-        
-        const peer = new Peer();
-
-        peer.on('open', (id) => {
-            const conn = peer.connect(peerIdToConnect, { reliable: false });
-            
-            conn.on('open', () => {
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ ഡൗൺലോഡ് ആകുന്നു...";
-                document.getElementById('progressBar').style.display = 'block';
-            });
-
-            let receivedSize = 0;
-            let totalSize = 0;
-            let fileChunks = [];
-            let fileMeta = null;
-
-            conn.on('data', (data) => {
-                if (data.type === 'meta') {
-                    fileMeta = data;
-                    totalSize = data.size;
-                } else if (data.type === 'chunk') {
-                    fileChunks.push(data.payload);
-                    receivedSize += data.payload.byteLength;
-                    
-                    let percent = Math.round((receivedSize / totalSize) * 100);
-                    document.getElementById('progressFill').style.width = percent + '%';
-                    document.getElementById('speedInfo').innerText = `Progress: ${percent}% (${Math.round(receivedSize/1024)} KB)`;
-
-                    if (receivedSize >= totalSize) {
-                        const blob = new Blob(fileChunks, { type: fileMeta.fileType });
-                        const url = URL.createObjectURL(blob);
-                        const a = document.createElement('a');
-                        a.href = url;
-                        a.download = fileMeta.fileName;
-                        a.click();
-                        document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി!";
-                        document.getElementById('speedInfo').innerText = "ഫയൽ സേവ് ചെയ്യപ്പെട്ടു.";
-                    }
-                }
-            });
-
-            conn.on('error', (err) => {
-                document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു! കോഡ് ശരിയാണോ എന്ന് പരിശോധിക്കുക.";
-            });
-        });
+        document.getElementById('status').innerText = ip + " എന്ന ഐപിയിലേക്ക് കണക്റ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...";
     }
 </script>
 

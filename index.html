@@ -65,20 +65,18 @@
     </div>
 
     <div class="instructions">
-        <strong>ശ്രദ്ധിക്കുക:</strong> രണ്ട് ഫോണുകളും ഒരേ വൈഫൈയിലോ അല്ലെങ്കിൽ ഏതെങ്കിലും ഒരു ഫോണിന്റെ ഹോട്ട്സ്പോട്ടിലോ കണക്റ്റ് ചെയ്തിരിക്കുന്നത് കണക്ഷൻ വേഗത്തിലാക്കാൻ സഹായിക്കും.
+        <strong>ശ്രദ്ധിക്കുക:</strong> ചെറിയ ഫയലുകൾ (ചിത്രങ്ങൾ, ഡോക്യുമെന്റുകൾ) വെച്ച് ആദ്യം പരിശോധിക്കുക.
     </div>
 </div>
 
 <script>
     let peer, conn, selectedFile;
 
-    // വിശ്വസനീയമായ STUN സെർവറുകൾ കോൺഫിഗർ ചെയ്യുന്നു
     const peerOptions = {
         config: {
             'iceServers': [
                 { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' },
-                { urls: 'stun:stun2.l.google.com:19302' }
+                { urls: 'stun:stun1.l.google.com:19302' }
             ]
         }
     };
@@ -121,14 +119,14 @@
         });
 
         peer.on('error', (err) => {
-            document.getElementById('status').innerText = "എറർ: " + err.type;
-            alert("കണക്ഷൻ എറർ: " + err.type + ". പേജ് റിഫ്രഷ് ചെയ്ത് വീണ്ടും നോക്കുക.");
+            alert("കണക്ഷൻ എറർ: " + err.type);
         });
     }
 
     function sendFile() {
         document.getElementById('progressBar').style.display = 'block';
         
+        // ഫയൽ വിവരങ്ങൾ അയക്കുന്നു
         conn.send({
             type: 'meta',
             name: selectedFile.name,
@@ -136,7 +134,7 @@
             fileType: selectedFile.type
         });
 
-        const chunkSize = 16384;
+        const chunkSize = 16384; // 16KB chunks
         const reader = new FileReader();
         let offset = 0;
 
@@ -150,7 +148,9 @@
             if (offset < selectedFile.size) {
                 readNextChunk();
             } else {
-                document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു!";
+                setTimeout(() => {
+                    document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു!";
+                }, 500);
             }
         };
 
@@ -175,11 +175,13 @@
             conn = peer.connect(code);
 
             conn.on('open', () => {
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ ഡൗൺലോഡ് ആകുന്നു...";
+                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കുന്നു...";
                 document.getElementById('progressBar').style.display = 'block';
             });
 
-            let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
+            let fileMeta = {};
+            let receivedBuffers = [];
+            let receivedSize = 0;
 
             conn.on('data', data => {
                 if (typeof data === 'object' && data.type === 'meta') {
@@ -192,12 +194,19 @@
                     document.getElementById('speedInfo').innerText = `പുരോഗതി: ${percent}%`;
 
                     if (receivedSize >= fileMeta.size) {
+                        document.getElementById('status').innerText = "ഫയൽ ഡൗൺലോഡ് തയ്യാറാക്കുന്നു...";
+                        
+                        // പൂർണ്ണമായ ഫയൽ ബ്ലോബ് രൂപത്തിലാക്കി ഡൗൺലോഡ് ട്രിഗർ ചെയ്യുന്നു
                         const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
                         const url = URL.createObjectURL(blob);
+                        
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = fileMeta.name;
+                        document.body.appendChild(a);
                         a.click();
+                        document.body.removeChild(a);
+                        
                         document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി!";
                     }
                 }
@@ -205,7 +214,7 @@
         });
 
         peer.on('error', (err) => {
-            alert("കണക്റ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല. കോഡ് ശരിയാണെന്നും രണ്ട് ഫോണിലും ഇന്റർനെറ്റ് കണക്ഷൻ ഉണ്ടെന്നും ഉറപ്പുവരുത്തുക.");
+            alert("കണക്റ്റ് ചെയ്യാൻ കഴിഞ്ഞില്ല.");
             document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു.";
         });
     }

@@ -7,32 +7,39 @@
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin-top: 20px; background: #f4f7f6; color: #333; }
-        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 420px; max-width: 90%; }
-        input[type="file"], input[type="text"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 90%; background: #fafafa; margin-bottom: 12px; font-size: 16px; }
-        button { background: #007bff; color: white; border: none; padding: 12px; width: 95%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 450px; max-width: 90%; text-align: left; }
+        .center { text-align: center; }
+        input[type="file"], input[type="text"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; padding: 12px; width: 100%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         button:hover { background: #0056b3; }
         #qrcode { margin: 15px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        .code-display { font-size: 22px; font-weight: bold; color: #28a745; letter-spacing: 2px; background: #e9f7ef; padding: 10px; border-radius: 6px; margin: 10px 0; }
-        #status { font-weight: bold; color: #d9534f; margin-top: 15px; font-size: 15px; }
+        .code-display { font-size: 22px; font-weight: bold; color: #28a745; letter-spacing: 2px; background: #e9f7ef; padding: 10px; border-radius: 6px; margin: 10px 0; text-align: center; }
+        #status { font-weight: bold; color: #d9534f; margin-top: 15px; font-size: 15px; text-align: center; }
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 15px; overflow: hidden; height: 14px; display: none; }
         .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
         .divider { margin: 20px 0; border-top: 1px dashed #ccc; position: relative; }
-        .divider span { background: white; padding: 0 10px; position: relative; top: -10px; color: #777; font-size: 14px; }
+        .divider span { background: white; padding: 0 10px; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #777; font-size: 14px; }
+        
+        /* Working Procedure Section Styles */
+        .procedure-box { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; font-size: 14px; color: #444; }
+        .procedure-box h3 { color: #007bff; font-size: 16px; margin-bottom: 10px; text-align: center; }
+        .procedure-box ol { padding-left: 20px; margin: 0; line-height: 1.6; }
+        .procedure-box li { margin-bottom: 8px; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>KUMBIDI P2P Share</h2>
+    <h2 class="center">KUMBIDI P2P Share</h2>
     
     <!-- Home / Sender Section -->
     <div id="main-section">
-        <p style="font-size: 14px; color: #666;">Connect via same Wi-Fi or Hotspot</p>
+        <p class="center" style="font-size: 14px; color: #666;">Connect via same Wi-Fi or Hotspot</p>
         <input type="file" id="fileInput">
         <br>
         <button onclick="startHosting()">Generate QR & Code</button>
         
-        <div id="share-info" style="display:none;">
+        <div id="share-info" style="display:none;" class="center">
             <div id="qrcode"></div>
             <p style="font-size: 13px; color: #555; margin: 5px 0;">Or enter this code on the other device:</p>
             <div class="code-display" id="numericCodeDisplay">---- ---- ----</div>
@@ -50,12 +57,25 @@
     </div>
 
     <!-- Receiver Progress Section -->
-    <div id="receiver-section" style="display:none;">
+    <div id="receiver-section" style="display:none;" class="center">
         <h3 id="receive-title">Receiving File...</h3>
         <p id="receive-status">Connecting...</p>
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
+    </div>
+
+    <!-- Working Procedure Section (Added in Malayalam) -->
+    <div class="procedure-box">
+        <h3>പ്രവർത്തിക്കുന്ന വിധം (Working Procedure):</h3>
+        <ol>
+            <li><strong>ഫൈൽ സെലക്ട് ചെയ്യൽ:</strong> ഫൈൽ അയക്കേണ്ട ആൾ ബ്രൗവറിൽ ആപ്പ് ഓപ്പൺ ചെയ്ത് താൻ അയക്കാൻ ആഗ്രഹിക്കുന്ന ഫൈൽ തിരഞ്ഞെടുക്കുന്നു.</li>
+            <li><strong>കോഡും QR കോഡും ജനറേറ്റ് ചെയ്യൽ:</strong> "Generate QR & Code" ബട്ടൺ ക്ലിക്ക് ചെയ്യുമ്പോൾ, ആപ്പ് തനിയെ 12 അക്കങ്ങളുള്ള ഒരു നമ്പറും അതിനോടൊപ്പം ഒരു QR കോഡും നിർമ്മിക്കുന്നു.</li>
+            <li><strong>കണക്റ്റ് ചെയ്യാനുള്ള മാർഗ്ഗങ്ങൾ:</strong>
+                <br>• <strong>മാർഗ്ഗം 1 (QR Code):</strong> മൊബൈൽ ക്യാമറയോ സ്കാനറോ വെച്ച് QR കോഡ് സ്കാൻ ചെയ്യുമ്പോൾ ഓട്ടോമാറ്റിക്കായി ലിങ്ക് വഴി കണക്റ്റ് ആകുന്നു.
+                <br>• <strong>മാർഗ്ഗം 2 (12-Digit Code):</strong> പിസിയിലോ മറ്റ് ഡിവൈസുകളിലോ ക്യാമറ ഇല്ലെങ്കിൽ, സെൻഡറുടെ സ്ക്രീനിൽ കാണുന്ന 12 അക്ക നമ്പർ സ്വീകരിക്കുന്ന ആളുടെ ഡിവൈസിലെ ബോക്സിൽ ടൈപ്പ് ചെയ്ത് "Connect & Download" ക്ലിക്ക് ചെയ്യാം.</li>
+            <li><strong>ഫയൽ കൈമാറ്റവും ഡൗൺലോഡും:</strong> കണക്ഷൻ വിജയകരമായാൽ, ഫൈൽ ചെറിയ പാക്കറ്റുകളായി (Chunks) നേരിട്ട് മറ്റേ ഡിവൈസിലേക്ക് അയക്കപ്പെടുന്നു. പ്രോഗ്രസ് ബാർ വഴി പുരോഗതി അറിയാൻ സാധിക്കും.</li>
+        </ol>
     </div>
 </div>
 
@@ -65,14 +85,12 @@
     const urlParams = new URLSearchParams(window.location.search);
     const targetCode = urlParams.get('code');
 
-    // Auto connect if opened via QR code link
     if (targetCode) {
         initReceiver("kumbidi_" + targetCode);
     }
 
     let activePeer = null;
 
-    // Generate random 12-digit code divided into 3 groups
     function generateNumericCode() {
         let num1 = Math.floor(1000 + Math.random() * 9000);
         let num2 = Math.floor(1000 + Math.random() * 9000);
@@ -100,7 +118,6 @@
         activePeer.on('open', (id) => {
             const shareLink = `${BASE_URL}?code=${cleanCode}`;
 
-            // Show QR Code
             const qrContainer = document.getElementById("qrcode");
             qrContainer.innerHTML = "";
             new QRCode(qrContainer, {
@@ -110,7 +127,6 @@
                 correctLevel: QRCode.CorrectLevel.M
             });
 
-            // Show 3-group numeric code
             document.getElementById('numericCodeDisplay').innerText = rawCode;
             document.getElementById('share-info').style.display = 'block';
             document.getElementById('status').innerText = "Ready! Scan QR or type the code below.";
@@ -118,7 +134,6 @@
 
         activePeer.on('error', (err) => {
             if(err.type === 'unavailable-id') {
-                // Retry if ID is taken
                 startHosting();
             } else {
                 document.getElementById('status').innerText = "Error: " + err.type;

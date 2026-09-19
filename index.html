@@ -2,115 +2,237 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI Local Direct Share - Xender Mode</title>
+    <title>KUMBIDI - P2P File Transfer</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
-        .container { background: white; max-width: 480px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left; }
-        h2 { text-align: center; color: #007bff; margin-bottom: 5px; }
-        p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
-        .btn-group { display: flex; gap: 10px; margin-bottom: 20px; }
-        button { flex: 1; background: #007bff; color: white; border: none; padding: 12px; font-size: 15px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 20px; background: #f4f7f6; color: #333; }
+        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 450px; max-width: 90%; text-align: left; }
+        .center { text-align: center; }
+        input[type="file"], input[type="text"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 16px; }
+        button { background: #007bff; color: white; border: none; padding: 12px; width: 100%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         button:hover { background: #0056b3; }
-        button.secondary { background: #28a745; }
-        button.secondary:hover { background: #218838; }
-        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; }
-        .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; display: none; text-align: center; }
-        #qrcode { margin: 10px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
-        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; }
+        #qrcode { margin: 15px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .code-display { font-size: 22px; font-weight: bold; color: #28a745; letter-spacing: 2px; background: #e9f7ef; padding: 10px; border-radius: 6px; margin: 10px 0; text-align: center; }
+        #status { font-weight: bold; color: #d9534f; margin-top: 15px; font-size: 15px; text-align: center; }
+        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 15px; overflow: hidden; height: 16px; display: none; }
         .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.05s ease; }
-        #status { font-weight: bold; color: #d9534f; font-size: 14px; text-align: center; margin-top: 10px; }
-        .instructions { font-size: 12px; color: #555; background: #fff3cd; padding: 10px; border-radius: 6px; border: 1px solid #ffeeba; margin-top: 15px; }
+        .speed-info { font-size: 13px; color: #666; margin-top: 5px; text-align: center; }
+        .divider { margin: 20px 0; border-top: 1px dashed #ccc; position: relative; }
+        .divider span { background: white; padding: 0 10px; position: absolute; top: -10px; left: 50%; transform: translateX(-50%); color: #777; font-size: 14px; }
+        
+        .procedure-box { margin-top: 30px; padding-top: 20px; border-top: 2px solid #eee; font-size: 13px; color: #444; }
+        .procedure-box h3 { color: #007bff; font-size: 15px; margin-bottom: 10px; text-align: center; }
+        .procedure-box ol { padding-left: 20px; margin: 0; line-height: 1.5; }
+        .procedure-box li { margin-bottom: 6px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h2>KUMBIDI Direct Share</h2>
-    <p class="sub">Xender മാതൃകയിലുള്ള ലോക്കൽ ഫയൽ ട്രാൻസ്ഫർ</p>
-
-    <div class="btn-group">
-        <button onclick="showSender()">Send (സെൻഡ് ചെയ്യുക)</button>
-        <button class="secondary" onclick="showReceiver()">Receive (സ്വീകരിക്കുക)</button>
-    </div>
-
-    <!-- SENDER SECTION -->
-    <div id="sender-section" class="card">
-        <h3>Files അയക്കാൻ:</h3>
-        <input type="file" id="fileInput" multiple>
-        <button onclick="startHosting()" style="background: #ffc107; color: #000;">ഹോസ്റ്റ് സ്റ്റാർട്ട് ചെയ്യുക</button>
+<div class="box">
+    <h2 class="center">KUMBIDI P2P Share</h2>
+    
+    <div id="main-section">
+        <p class="center" style="font-size: 13px; color: #666;">Connect via same Wi-Fi, Hotspot or LAN</p>
+        <input type="file" id="fileInput">
+        <br>
+        <button onclick="startHosting()">Generate QR & Code via GitHub</button>
         
-        <div id="host-info" style="display:none; margin-top: 15px;">
-            <p style="font-size: 13px; color: #333;">ഈ QR കോഡ് റിസീവർ സ്കാൻ ചെയ്യുക:</p>
+        <div id="share-info" style="display:none;" class="center">
             <div id="qrcode"></div>
-            <p id="local-url" style="font-size: 12px; font-weight: bold; color: #007bff; word-break: break-all;"></p>
+            <p style="font-size: 13px; color: #555; margin: 5px 0;">Or enter this code on the other device:</p>
+            <div class="code-display" id="numericCodeDisplay">---- ---- ----</div>
         </div>
+
+        <div class="divider"><span>OR</span></div>
+
+        <div>
+            <input type="text" id="manualCodeInput" placeholder="Enter 12-digit code (e.g. 1245 3625 2564)" maxlength="14">
+            <button onclick="connectWithCode()" style="background: #28a745;">Connect & Download</button>
+        </div>
+
+        <p id="status"></p>
     </div>
 
-    <!-- RECEIVER SECTION -->
-    <div id="receiver-section" class="card">
-        <h3>Files സ്വീകരിക്കാൻ:</h3>
-        <p style="font-size: 13px; color: #555;">സെൻഡറുടെ ഹോട്ട്‌സ്പോട്ടിലേക്ക് കണക്റ്റ് ചെയ്ത ശേഷം താഴെയുള്ള ബട്ടൺ അമർത്തുക അല്ലെങ്കിൽ സെൻഡറുടെ ലിങ്ക് ബ്രൗസറിൽ തുറക്കുക.</p>
-        <button onclick="connectToSender()" class="secondary">കണക്റ്റ് ചെയ്ത് ഡൗൺലോഡ് ചെയ്യുക</button>
-    </div>
-
-    <!-- TRANSFER STATUS -->
-    <div id="transfer-card" class="card" style="display:block;">
-        <h3>സ്റ്റാറ്റസ്</h3>
-        <p id="status">നിങ്ങളുടെ ഓപ്ഷൻ തിരഞ്ഞെടുക്കുക...</p>
-        <div class="progress-bar" id="progressBar" style="display:none;">
+    <div id="receiver-section" style="display:none;" class="center">
+        <h3 id="receive-title">Receiving File...</h3>
+        <p id="receive-status">Establishing direct link...</p>
+        <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
-        <p id="speedInfo" style="font-size: 12px; color: #666; margin-top: 5px;"></p>
+        <div class="speed-info" id="speedInfo">Preparing download...</div>
     </div>
 
-    <div class="instructions">
-        <strong>ശ്രദ്ധിക്കുക (Xender പോലെ പ്രവർത്തിക്കാൻ):</strong>
-        <ol style="padding-left: 15px; margin: 5px 0 0 0;">
-            <li>രണ്ട് ഫോണുകളിൽ ഒരാൾ **Hotspot** ഓൺ ചെയ്യുക. മറ്റേ ഫോൺ ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക (ഇന്റർനെറ്റ് ആവശ്യമില്ല).</li>
-            <li>സെൻഡർ ഫോണിൽ ഫയൽ സെലക്റ്റ് ചെയ്ത് ഹോസ്റ്റ് ചെയ്യുമ്പോൾ കിട്ടുന്ന ലോക്കൽ ലിങ്ക് റിസീവർ ഫോണിലെ ബ്രൗസറിൽ തുറക്കുക.</li>
+    <div class="procedure-box">
+        <h3>പ്രവർത്തിക്കുന്ന വിധം (Working Procedure):</h3>
+        <ol>
+            <li><strong>ഫൈൽ സെലക്ട് ചെയ്യൽ:</strong> ഫൈൽ അയക്കേണ്ട ആൾ ബ്രൗവറിൽ ആപ്പ് ഓപ്പൺ ചെയ്ത് ഫൈൽ തിരഞ്ഞെടുക്കുന്നു.</li>
+            <li><strong>GitHub ലിങ്ക് അടങ്ങിയ QR കോഡ്:</strong> "Generate QR & Code" അമർത്തുമ്പോൾ `https://muralipaladan.github.io/filetransfer/` എന്ന സൈറ്റിലേക്കുള്ള ലിങ്കും 12 അക്ക നമ്പറും അടങ്ങിയ QR കോഡ് ജനറേറ്റ് ആകുന്നു.</li>
+            <li><strong>സ്കാൻ ചെയ്ത് ഡൗൺലോഡ്:</strong> റിസീവർ ഫോൺ ക്യാമറ വെച്ച് QR കോഡ് സ്കാൻ ചെയ്യുമ്പോൾ ഗിറ്റ്‌ഹബ് പേജ് ബ്രൗവറിൽ ഓപ്പൺ ആവുകയും, ലോക്കൽ വൈഫൈ/ഹോട്ട്‌സ്പോട്ട് വഴി നേരിട്ട് ഫയൽ ഡൗൺലോഡ് ആകുകയും ചെയ്യുന്നു.</li>
         </ol>
     </div>
 </div>
 
 <script>
-    function showSender() {
-        document.getElementById('sender-section').style.display = 'block';
-        document.getElementById('receiver-section').style.display = 'none';
+    const BASE_URL = "https://muralipaladan.github.io/filetransfer/";
+    
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetCode = urlParams.get('code');
+
+    if (targetCode) {
+        initReceiver("kumbidi_hs_" + targetCode);
     }
 
-    function showReceiver() {
-        document.getElementById('sender-section').style.display = 'none';
-        document.getElementById('receiver-section').style.display = 'block';
+    let activePeer = null;
+
+    function generateNumericCode() {
+        let num1 = Math.floor(1000 + Math.random() * 9000);
+        let num2 = Math.floor(1000 + Math.random() * 9000);
+        let num3 = Math.floor(1000 + Math.random() * 9000);
+        return `${num1} ${num2} ${num3}`;
     }
 
     function startHosting() {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) {
-            alert("దయവായി കുറഞ്ഞത് ഒരു ഫയലെങ്കിലും തിരഞ്ഞെടുക്കുക!");
+            alert("Please select a file first!");
             return;
         }
 
-        // ലോക്കൽ ഐപി കണ്ടെത്തൽ (ബ്രൗസർ വഴി ലോക്കൽ ഹോസ്റ്റ് അല്ലെങ്കിൽ എക്സ്പ്രസ്സ് സെർവർ വഴി ലോക്കൽ വൈഫൈ ഐപി ലഭിക്കും)
-        let localIP = window.location.href;
+        document.getElementById('status').innerText = "Registering connection...";
         
-        document.getElementById('host-info').style.display = 'block';
-        document.getElementById("qrcode").innerHTML = "";
-        
-        new QRCode(document.getElementById("qrcode"), {
-            text: localIP,
-            width: 150,
-            height: 150,
-            correctLevel: QRCode.CorrectLevel.M
+        if(activePeer) { activePeer.destroy(); }
+
+        const rawCode = generateNumericCode();
+        const cleanCode = rawCode.replace(/\s+/g, '');
+        const peerId = "kumbidi_hs_" + cleanCode;
+
+        activePeer = new Peer(peerId);
+
+        activePeer.on('open', (id) => {
+            const shareLink = `${BASE_URL}?code=${cleanCode}`;
+
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: shareLink,
+                width: 160,
+                height: 160,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            document.getElementById('numericCodeDisplay').innerText = rawCode;
+            document.getElementById('share-info').style.display = 'block';
+            document.getElementById('status').innerText = "Ready! Scan QR or type code to download.";
         });
 
-        document.getElementById('local-url').innerText = localIP;
-        document.getElementById('status').innerText = "ഹോസ്റ്റിംഗ് തയ്യാറാണ്. ഡിവൈസുകൾ ബന്ധിപ്പിക്കൂ.";
+        activePeer.on('error', (err) => {
+            if(err.type === 'unavailable-id') {
+                startHosting();
+            } else {
+                document.getElementById('status').innerText = "Error: " + err.type;
+            }
+        });
+
+        activePeer.on('connection', (conn) => {
+            document.getElementById('status').innerText = "Connected! Sending file...";
+            const file = fileInput.files[0];
+            
+            conn.on('open', () => {
+                conn.send({
+                    type: 'meta',
+                    fileName: file.name,
+                    fileType: file.type,
+                    size: file.size
+                });
+
+                const chunkSize = 65536; 
+                const reader = new FileReader();
+                let offset = 0;
+
+                reader.onload = function(e) {
+                    conn.send({
+                        type: 'chunk',
+                        payload: e.target.result
+                    });
+                    offset += e.target.result.byteLength;
+                    
+                    if (offset < file.size) {
+                        readNextChunk();
+                    } else {
+                        document.getElementById('status').innerText = "File sent successfully!";
+                    }
+                };
+
+                function readNextChunk() {
+                    const slice = file.slice(offset, offset + chunkSize);
+                    reader.readAsArrayBuffer(slice);
+                }
+
+                readNextChunk();
+            });
+        });
     }
 
-    function connectToSender() {
-        document.getElementById('status').innerText = "ലോക്കൽ നെറ്റ്‌വർക്കിൽ ഫയലുകൾക്കായി തിരയുന്നു...";
-        // ലോക്കൽ ഡാറ്റ സിങ്ക് ചെയ്യാനുള്ള കോഡ് ഘടന ഇവിടെ പ്രവർത്തിക്കും.
+    function connectWithCode() {
+        const inputVal = document.getElementById('manualCodeInput').value.trim();
+        const cleanCode = inputVal.replace(/\s+/g, '');
+        if(cleanCode.length !== 12) {
+            alert("Please enter a valid 12-digit code (e.g. 1245 3625 2564)");
+            return;
+        }
+        initReceiver("kumbidi_hs_" + cleanCode);
+    }
+
+    function initReceiver(peerIdToConnect) {
+        document.getElementById('main-section').style.display = 'none';
+        document.getElementById('receiver-section').style.display = 'block';
+        
+        const peer = new Peer();
+
+        peer.on('open', (id) => {
+            const conn = peer.connect(peerIdToConnect, { reliable: false });
+            
+            conn.on('open', () => {
+                document.getElementById('receive-status').innerText = "Connected! Receiving file...";
+                document.getElementById('progressBar').style.display = 'block';
+            });
+
+            let receivedSize = 0;
+            let totalSize = 0;
+            let fileChunks = [];
+            let fileMeta = null;
+
+            conn.on('data', (data) => {
+                if (data.type === 'meta') {
+                    fileMeta = data;
+                    totalSize = data.size;
+                    document.getElementById('receive-title').innerText = `Downloading ${fileMeta.fileName}`;
+                } else if (data.type === 'chunk') {
+                    fileChunks.push(data.payload);
+                    receivedSize += data.payload.byteLength;
+                    
+                    let percent = Math.round((receivedSize / totalSize) * 100);
+                    document.getElementById('progressFill').style.width = percent + '%';
+                    document.getElementById('speedInfo').innerText = `Progress: ${percent}% (${Math.round(receivedSize/1024)} KB / ${Math.round(totalSize/1024)} KB)`;
+
+                    if (receivedSize >= totalSize) {
+                        const blob = new Blob(fileChunks, { type: fileMeta.fileType });
+                        const url = URL.createObjectURL(blob);
+                        const a = document.createElement('a');
+                        a.href = url;
+                        a.download = fileMeta.fileName;
+                        a.click();
+                        document.getElementById('receive-status').innerText = "Download completed successfully!";
+                        document.getElementById('speedInfo').innerText = "Transfer finished.";
+                    }
+                }
+            });
+
+            conn.on('error', (err) => {
+                document.getElementById('receive-status').innerText = "Connection failed! Ensure both are on the same Wi-Fi/Hotspot.";
+            });
+        });
     }
 </script>
 

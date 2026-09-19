@@ -3,19 +3,21 @@
 <head>
     <meta charset="UTF-8">
     <title>KUMBIDI - P2P File Transfer</title>
-    <!-- Libraries for fast loading -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 30px; background: #f4f7f6; color: #333; }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 20px; background: #f4f7f6; color: #333; }
         .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 420px; max-width: 90%; }
-        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 90%; background: #fafafa; margin-bottom: 15px; }
+        input[type="file"], input[type="text"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 90%; background: #fafafa; margin-bottom: 12px; font-size: 16px; }
         button { background: #007bff; color: white; border: none; padding: 12px; width: 95%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
         button:hover { background: #0056b3; }
-        #qrcode { margin: 20px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        #qrcode { margin: 15px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
+        .code-display { font-size: 22px; font-weight: bold; color: #28a745; letter-spacing: 2px; background: #e9f7ef; padding: 10px; border-radius: 6px; margin: 10px 0; }
         #status { font-weight: bold; color: #d9534f; margin-top: 15px; font-size: 15px; }
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 15px; overflow: hidden; height: 14px; display: none; }
         .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
+        .divider { margin: 20px 0; border-top: 1px dashed #ccc; position: relative; }
+        .divider span { background: white; padding: 0 10px; position: relative; top: -10px; color: #777; font-size: 14px; }
     </style>
 </head>
 <body>
@@ -23,17 +25,31 @@
 <div class="box">
     <h2>KUMBIDI P2P Share</h2>
     
-    <!-- System A: Sender Section -->
-    <div id="sender-section">
+    <!-- Home / Sender Section -->
+    <div id="main-section">
         <p style="font-size: 14px; color: #666;">Connect via same Wi-Fi or Hotspot</p>
         <input type="file" id="fileInput">
         <br>
-        <button onclick="startHosting()">Generate QR Code</button>
-        <div id="qrcode"></div>
+        <button onclick="startHosting()">Generate QR & Code</button>
+        
+        <div id="share-info" style="display:none;">
+            <div id="qrcode"></div>
+            <p style="font-size: 13px; color: #555; margin: 5px 0;">Or enter this code on the other device:</p>
+            <div class="code-display" id="numericCodeDisplay">---- ---- ----</div>
+        </div>
+
+        <div class="divider"><span>OR</span></div>
+
+        <!-- Manual Code Input for Receiver -->
+        <div>
+            <input type="text" id="manualCodeInput" placeholder="Enter 12-digit code (e.g. 1245 3625 2564)" maxlength="14">
+            <button onclick="connectWithCode()" style="background: #28a745;">Connect & Download</button>
+        </div>
+
         <p id="status"></p>
     </div>
 
-    <!-- System B: Receiver Section -->
+    <!-- Receiver Progress Section -->
     <div id="receiver-section" style="display:none;">
         <h3 id="receive-title">Receiving File...</h3>
         <p id="receive-status">Connecting...</p>
@@ -44,20 +60,128 @@
 </div>
 
 <script>
-    // GitHub Page Base URL
     const BASE_URL = "https://muralipaladan.github.io/filetransfer/";
     
     const urlParams = new URLSearchParams(window.location.search);
-    const targetPeerId = urlParams.get('peer');
+    const targetCode = urlParams.get('code');
 
-    if (targetPeerId) {
-        // --- System B (Receiver Mode) ---
-        document.getElementById('sender-section').style.display = 'none';
+    // Auto connect if opened via QR code link
+    if (targetCode) {
+        initReceiver("kumbidi_" + targetCode);
+    }
+
+    let activePeer = null;
+
+    // Generate random 12-digit code divided into 3 groups
+    function generateNumericCode() {
+        let num1 = Math.floor(1000 + Math.random() * 9000);
+        let num2 = Math.floor(1000 + Math.random() * 9000);
+        let num3 = Math.floor(1000 + Math.random() * 9000);
+        return `${num1} ${num2} ${num3}`;
+    }
+
+    function startHosting() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) {
+            alert("Please select a file first!");
+            return;
+        }
+
+        document.getElementById('status').innerText = "Setting up connection...";
+        
+        if(activePeer) { activePeer.destroy(); }
+
+        const rawCode = generateNumericCode();
+        const cleanCode = rawCode.replace(/\s+/g, '');
+        const peerId = "kumbidi_" + cleanCode;
+
+        activePeer = new Peer(peerId);
+
+        activePeer.on('open', (id) => {
+            const shareLink = `${BASE_URL}?code=${cleanCode}`;
+
+            // Show QR Code
+            const qrContainer = document.getElementById("qrcode");
+            qrContainer.innerHTML = "";
+            new QRCode(qrContainer, {
+                text: shareLink,
+                width: 160,
+                height: 160,
+                correctLevel: QRCode.CorrectLevel.M
+            });
+
+            // Show 3-group numeric code
+            document.getElementById('numericCodeDisplay').innerText = rawCode;
+            document.getElementById('share-info').style.display = 'block';
+            document.getElementById('status').innerText = "Ready! Scan QR or type the code below.";
+        });
+
+        activePeer.on('error', (err) => {
+            if(err.type === 'unavailable-id') {
+                // Retry if ID is taken
+                startHosting();
+            } else {
+                document.getElementById('status').innerText = "Error: " + err.type;
+            }
+        });
+
+        activePeer.on('connection', (conn) => {
+            document.getElementById('status').innerText = "Device connected, sending file...";
+            const file = fileInput.files[0];
+            
+            conn.on('open', () => {
+                conn.send({
+                    type: 'meta',
+                    fileName: file.name,
+                    fileType: file.type,
+                    size: file.size
+                });
+
+                const chunkSize = 16384; 
+                const reader = new FileReader();
+                let offset = 0;
+
+                reader.onload = function(e) {
+                    conn.send({
+                        type: 'chunk',
+                        payload: e.target.result
+                    });
+                    offset += e.target.result.byteLength;
+                    
+                    if (offset < file.size) {
+                        readNextChunk();
+                    } else {
+                        document.getElementById('status').innerText = "File sent successfully!";
+                    }
+                };
+
+                function readNextChunk() {
+                    const slice = file.slice(offset, offset + chunkSize);
+                    reader.readAsArrayBuffer(slice);
+                }
+
+                readNextChunk();
+            });
+        });
+    }
+
+    function connectWithCode() {
+        const inputVal = document.getElementById('manualCodeInput').value.trim();
+        const cleanCode = inputVal.replace(/\s+/g, '');
+        if(cleanCode.length !== 12) {
+            alert("Please enter a valid 12-digit code (e.g. 1245 3625 2564)");
+            return;
+        }
+        initReceiver("kumbidi_" + cleanCode);
+    }
+
+    function initReceiver(peerIdToConnect) {
+        document.getElementById('main-section').style.display = 'none';
         document.getElementById('receiver-section').style.display = 'block';
         
         const peer = new Peer();
         peer.on('open', (id) => {
-            const conn = peer.connect(targetPeerId);
+            const conn = peer.connect(peerIdToConnect);
             
             conn.on('open', () => {
                 document.getElementById('receive-status').innerText = "Connected! Receiving file data...";
@@ -95,82 +219,9 @@
             });
 
             conn.on('error', (err) => {
-                document.getElementById('receive-status').innerText = "Connection lost!";
+                document.getElementById('receive-status').innerText = "Connection failed or expired!";
             });
         });
-
-    } else {
-        // --- System A (Sender Mode) ---
-        let peer = null;
-        
-        function startHosting() {
-            const fileInput = document.getElementById('fileInput');
-            if (fileInput.files.length === 0) {
-                alert("Please select a file first!");
-                return;
-            }
-
-            document.getElementById('status').innerText = "Setting up connection...";
-            
-            if(peer) { peer.destroy(); }
-
-            peer = new Peer();
-
-            peer.on('open', (id) => {
-                const shareLink = `${BASE_URL}?peer=${id}`;
-
-                const qrContainer = document.getElementById("qrcode");
-                qrContainer.innerHTML = "";
-                
-                new QRCode(qrContainer, {
-                    text: shareLink,
-                    width: 200,
-                    height: 200,
-                    correctLevel: QRCode.CorrectLevel.M
-                });
-
-                document.getElementById('status').innerText = "Scan QR code using phone camera!";
-            });
-
-            peer.on('connection', (conn) => {
-                document.getElementById('status').innerText = "Device connected, starting file transfer...";
-                const file = fileInput.files[0];
-                
-                conn.on('open', () => {
-                    conn.send({
-                        type: 'meta',
-                        fileName: file.name,
-                        fileType: file.type,
-                        size: file.size
-                    });
-
-                    const chunkSize = 16384; // 16KB Chunks
-                    const reader = new FileReader();
-                    let offset = 0;
-
-                    reader.onload = function(e) {
-                        conn.send({
-                            type: 'chunk',
-                            payload: e.target.result
-                        });
-                        offset += e.target.result.byteLength;
-                        
-                        if (offset < file.size) {
-                            readNextChunk();
-                        } else {
-                            document.getElementById('status').innerText = "File sent successfully!";
-                        }
-                    };
-
-                    function readNextChunk() {
-                        const slice = file.slice(offset, offset + chunkSize);
-                        reader.readAsArrayBuffer(slice);
-                    }
-
-                    readNextChunk();
-                });
-            });
-        }
     }
 </script>
 

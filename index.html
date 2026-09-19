@@ -2,38 +2,40 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>Local P2P QR File Share (ധാര)</title>
-    <!-- ലോക്കൽ പെർഫോമൻസിനായി സ്പീഡ് ഉറപ്പാക്കാൻ ആവശ്യമായ സ്ക്രിപ്റ്റുകൾ -->
+    <title>Dahara - P2P File Transfer</title>
+    <!-- ലൈബ്രറികൾ ലോക്കൽ/സിഡിഎൻ വഴി അതിവേഗം ലോഡ് ആകാൻ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin-top: 40px; background: #f0f2f5; }
-        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 420px; }
-        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 90%; background: #fafafa; }
-        button { background: #28a745; color: white; border: none; padding: 12px; width: 95%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; }
-        button:hover { background: #218838; }
+        body { font-family: Arial, sans-serif; text-align: center; margin-top: 30px; background: #f4f7f6; color: #333; }
+        .box { background: white; padding: 25px; border-radius: 12px; display: inline-block; box-shadow: 0 4px 15px rgba(0,0,0,0.1); width: 420px; max-width: 90%; }
+        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 90%; background: #fafafa; margin-bottom: 15px; }
+        button { background: #007bff; color: white; border: none; padding: 12px; width: 95%; font-size: 16px; border-radius: 6px; cursor: pointer; font-weight: bold; }
+        button:hover { background: #0056b3; }
         #qrcode { margin: 20px auto; display: flex; justify-content: center; background: #fff; padding: 10px; border-radius: 6px; width: fit-content; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-        #status { font-weight: bold; color: #0056b3; margin-top: 15px; font-size: 15px; }
-        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 10px; overflow: hidden; height: 12px; display: none; }
-        .progress-fill { width: 0%; height: 100%; background: #007bff; transition: width 0.1s ease; }
+        #status { font-weight: bold; color: #d9534f; margin-top: 15px; font-size: 15px; }
+        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; margin-top: 15px; overflow: hidden; height: 14px; display: none; }
+        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
     </style>
 </head>
 <body>
 
 <div class="box">
-    <h2>ഫയൽ ഷെയറിംഗ് സിസ്റ്റം (Local)</h2>
+    <h2>ധാര (Dahara P2P Share)</h2>
     
+    <!-- സിസ്റ്റം A: ഫയൽ സെൻഡ് ചെയ്യുന്ന ഭാഗം -->
     <div id="sender-section">
-        <h3>1. ഫൈൽ സെലക്ട് ചെയ്യുക</h3>
+        <p style="font-size: 14px; color: #666;">ഒരേ വൈഫൈ അല്ലെങ്കിൽ ഹോട്ട്‌സ്പോട്ടിൽ കണക്റ്റ് ചെയ്യുക</p>
         <input type="file" id="fileInput">
         <br>
-        <button onclick="startHosting()">QR കോഡ് പെട്ടെന്ന് ജനറേറ്റ് ചെയ്യുക</button>
+        <button onclick="startHosting()">QR കോഡ് ജനറേറ്റ് ചെയ്യുക</button>
         <div id="qrcode"></div>
         <p id="status"></p>
     </div>
 
+    <!-- സിസ്റ്റം B: ഫയൽ സ്വീകരിക്കുന്ന ഭാഗം -->
     <div id="receiver-section" style="display:none;">
-        <h3>ഫയൽ ഡൗൺലോഡ് ആകുന്നു...</h3>
+        <h3 id="receive-title">ഫയൽ സ്വീകരിക്കുന്നു...</h3>
         <p id="receive-status">കണക്റ്റ് ചെയ്യുന്നു...</p>
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
@@ -42,11 +44,14 @@
 </div>
 
 <script>
+    // ഗിറ്റ്‌ഹബ് പേജിന്റെ സ്ഥിരമായ യുഎൽആർ (Base URL)
+    const BASE_URL = "https://muralipaladan.github.io/filetransfer/";
+    
     const urlParams = new URLSearchParams(window.location.search);
     const targetPeerId = urlParams.get('peer');
 
     if (targetPeerId) {
-        // സിസ്റ്റം B (റസീവർ ഭാഗം - ഓട്ടോമാറ്റിക് കണക്ഷൻ)
+        // --- സിസ്റ്റം B (റസീവർ മോഡ്) ---
         document.getElementById('sender-section').style.display = 'none';
         document.getElementById('receiver-section').style.display = 'block';
         
@@ -55,7 +60,7 @@
             const conn = peer.connect(targetPeerId);
             
             conn.on('open', () => {
-                document.getElementById('receive-status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കുന്നു...";
+                document.getElementById('receive-status').innerText = "കണക്റ്റ് ആയി! ഫയൽ ഡൗൺലോഡ് ഡാറ്റ വരുന്നു...";
                 document.getElementById('progressBar').style.display = 'block';
             });
 
@@ -68,13 +73,14 @@
                 if (data.type === 'meta') {
                     fileMeta = data;
                     totalSize = data.size;
+                    document.getElementById('receive-title').innerText = `${fileMeta.fileName} ഡൗൺലോഡ് ആകുന്നു`;
                 } else if (data.type === 'chunk') {
                     fileChunks.push(data.payload);
                     receivedSize += data.payload.byteLength;
                     
                     let percent = Math.round((receivedSize / totalSize) * 100);
                     document.getElementById('progressFill').style.width = percent + '%';
-                    document.getElementById('receive-status').innerText = `ഡൗൺലോഡ് ആകുന്നു... ${percent}%`;
+                    document.getElementById('receive-status').innerText = `ഡൗൺലോഡ് പുരോഗമിക്കുന്നു: ${percent}%`;
 
                     if (receivedSize === totalSize) {
                         const blob = new Blob(fileChunks, { type: fileMeta.fileType });
@@ -83,47 +89,58 @@
                         a.href = url;
                         a.download = fileMeta.fileName;
                         a.click();
-                        document.getElementById('receive-status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി!";
+                        document.getElementById('receive-status').innerText = "ഫയൽ ഡൗൺലോഡ് പൂർത്തിയായി!";
                     }
                 }
             });
+
+            conn.on('error', (err) => {
+                document.getElementById('receive-status').innerText = "കണക്ഷൻ തടസ്സപ്പെട്ടു!";
+            });
         });
+
     } else {
-        // സിസ്റ്റം A (സെൻഡർ ഭാഗം)
+        // --- സിസ്റ്റം A (സെൻഡർ മോഡ്) ---
         let peer = null;
+        
         function startHosting() {
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length === 0) {
-                alert("ദയവായി ഒരു ഫൈൽ സെലക്ട് ചെയ്യുക!");
+                alert("ദയവായി ആദ്യം ഒരു ഫൈൽ സെലക്ട് ചെയ്യുക!");
                 return;
             }
 
-            document.getElementById('status').innerText = "സിസ്റ്റം തയ്യാറാകുന്നു...";
+            document.getElementById('status').innerText = "കണക്ഷൻ സജ്ജീകരിക്കുന്നു...";
+            
+            // പഴയ പീയർ ഉണ്ടെങ്കിൽ ക്ലോസ് ചെയ്യുന്നു
+            if(peer) { peer.destroy(); }
+
             peer = new Peer();
 
             peer.on('open', (id) => {
-                const currentUrl = window.location.href.split('?')[0];
-                const shareLink = `${currentUrl}?peer=${id}`;
+                // കൃത്യമായ ഗിറ്റ്‌ഹബ് ലിങ്കിലേക്ക് പീയർ ഐഡി അറ്റാച്ച് ചെയ്യുന്നു
+                const shareLink = `${BASE_URL}?peer=${id}`;
 
-                // ക്ലിയർ ചെയ്ത് instant ആയി QR കോഡ് വരയ്ക്കുന്നു
                 const qrContainer = document.getElementById("qrcode");
                 qrContainer.innerHTML = "";
+                
+                // അതിവേഗം ക്യുആർ കോഡ് ജനറേറ്റ് ചെയ്യുന്നു
                 new QRCode(qrContainer, {
                     text: shareLink,
-                    width: 180,
-                    height: 180,
+                    width: 200,
+                    height: 200,
                     correctLevel: QRCode.CorrectLevel.M
                 });
 
-                document.getElementById('status').innerText = "QR കോഡ് സ്കാൻ ചെയ്യുക!";
+                document.getElementById('status').innerText = "ഫോൺ ക്യാമറ ഉപയോഗിച്ച് QR കോഡ് സ്കാൻ ചെയ്യുക!";
             });
 
             peer.on('connection', (conn) => {
-                document.getElementById('status').innerText = "ഡിിവൈസ് കണക്റ്റ് ചെയ്തു, ഫയൽ അയക്കുന്നു...";
+                document.getElementById('status').innerText = "ഡിവൈസ് കണക്റ്റ് ചെയ്തു, ഫയൽ അയച്ചുതുടങ്ങുന്നു...";
                 const file = fileInput.files[0];
                 
-                // വലിയ ഫയലുകൾ തടസ്സമില്ലാതെ അയക്കാൻ ചാങ്ക്‌സ് ആയി മാറ്റുന്നു
                 conn.on('open', () => {
+                    // ആദ്യം ഫയലിന്റെ വിവരങ്ങൾ അയക്കുന്നു
                     conn.send({
                         type: 'meta',
                         fileName: file.name,
@@ -131,7 +148,7 @@
                         size: file.size
                     });
 
-                    const chunkSize = 16384; // 16KB Chunks
+                    const chunkSize = 16384; // 16KB ചെറിയ ചങ്കുകളായി അയക്കുന്നു (ഡിലേ ഒഴിവാക്കാൻ)
                     const reader = new FileReader();
                     let offset = 0;
 
@@ -141,10 +158,11 @@
                             payload: e.target.result
                         });
                         offset += e.target.result.byteLength;
+                        
                         if (offset < file.size) {
                             readNextChunk();
                         } else {
-                            document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു!";
+                            document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു!";
                         }
                     };
 

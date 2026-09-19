@@ -2,7 +2,7 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI Universal P2P Share (Mobile & PC)</title>
+    <title>KUMBIDI Local P2P Share</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
@@ -26,8 +26,8 @@
 <body>
 
 <div class="container">
-    <h2>KUMBIDI Share</h2>
-    <p class="sub">Mobile ⇄ PC ഫയൽ ട്രാൻസ്ഫർ ടൂൾ</p>
+    <h2>KUMBIDI Local Share</h2>
+    <p class="sub">ഓഫ്‌ലൈൻ ലോക്കൽ നെറ്റ്‌വർക്ക് ഫയൽ ഷെയർ</p>
 
     <div class="btn-group">
         <button onclick="showSender()">Send (ഫയൽ അയക്കാൻ)</button>
@@ -49,7 +49,7 @@
     <!-- RECEIVER SECTION -->
     <div id="receiver-section" class="card">
         <h3>ഫയൽ സ്വീകരിക്കാൻ:</h3>
-        <p style="font-size: 13px; color: #555;">ഒരേ വൈഫൈയിലോ ഹോട്ട്‌സ്പോട്ടിലോ കണക്റ്റ് ചെയ്ത ശേഷം താഴെ കോഡ് നൽകുക.</p>
+        <p style="font-size: 13px; color: #555;">ഹോട്ട്‌സ്പോട്ടിൽ കണക്റ്റ് ചെയ്ത ശേഷം താഴെ കോഡ് നൽകുക.</p>
         <input type="text" id="manualCodeInput" placeholder="6 അക്ക കോഡ് ടൈപ്പ് ചെയ്യുക" maxlength="6">
         <button onclick="connectToSender()" class="secondary">കണക്റ്റ് ചെയ്ത് ഡൗൺലോഡ് ചെയ്യുക</button>
     </div>
@@ -67,9 +67,9 @@
     <div class="instructions">
         <strong>ഉപയോഗിക്കേണ്ട വിധം (User Manual):</strong>
         <ol style="padding-left: 15px; margin: 0;">
-            <li><strong>Common Network Setup:</strong> രണ്ട് ഡിവൈസുകളും (Mobile & PC / Mobile & Mobile / PC & PC) ഒരേ Wi-Fi റൂട്ടറിലോ അല്ലെങ്കിൽ ഒരു ഡിവൈസിന്റെ Hotspot-ലോ കണക്റ്റ് ചെയ്യുക (ഇത് ഒരേ ലോക്കൽ നെറ്റ്‌വർക്കിൽ പ്രവർത്തിക്കാൻ ഉറപ്പാക്കുന്നു).</li>
-            <li><strong>Open App:</strong> എല്ലാ ഡിവൈസുകളിലും ബ്രൗസറിൽ നിങ്ങളുടെ ഗിറ്റ്‌ഹബ് ലിങ്ക് ഓപ്പൺ ചെയ്യുക.</li>
-            <li><strong>Transfer Process:</strong> സെൻഡർ ഫയൽ തിരഞ്ഞെടുത്ത് കോഡ് ജനറേറ്റ് ചെയ്യുക. ആ കോഡ് റിസീവർ ഡിവൈസിൽ നൽകി കണക്റ്റ് ചെയ്താൽ ഫയൽ അതിവേഗം കൈമാറപ്പെടും.</li>
+            <li><strong>Hotspot Connection:</strong> ഒരു ഡിവൈസിൽ ഹോട്ട്‌സ്പോട്ട് ഓൺ ചെയ്യുക, മറ്റേ ഡിവൈസ് ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക (ഇന്റർനെറ്റ് ആവശ്യമില്ല).</li>
+            <li><strong>Open Page:</strong> രണ്ട് ഡിവൈസുകളിലും ബ്രൗസർ തുറന്ന് ഗിറ്റ്‌ഹബ് ലിങ്ക് ഓപ്പൺ ചെയ്യുക (പേജ് ലോഡ് ആകാൻ മാത്രം ആദ്യം ഇന്റർനെറ്റ് ഉണ്ടായിരിക്കണം, പിന്നീട് ഇന്റർനെറ്റ് ഓഫ് ചെയ്യാം).</li>
+            <li><strong>Transfer:</strong> സെൻഡർ കോഡ് ജനറേറ്റ് ചെയ്ത് റിസീവറിന് നൽകി ഫയൽ കൈമാറുക.</li>
         </ol>
     </div>
 </div>
@@ -102,8 +102,9 @@
         if(activePeer) { activePeer.destroy(); }
 
         const code = generateCode();
-        const peerId = "kumbidi_uni_" + code;
+        const peerId = "kumbidi_local_" + code;
 
+        // ലോക്കൽ നെറ്റ്‌വർക്കിനായി STUN സെർവറുകൾ പൂർണ്ണമായും ഒഴിവാക്കി വേഗത്തിലുള്ള കണക്ഷൻ നൽകുന്നു
         activePeer = new Peer(peerId);
 
         activePeer.on('open', (id) => {
@@ -168,7 +169,7 @@
         }
 
         document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യാൻ ശ്രമിക്കുന്നു...";
-        const peerIdToConnect = "kumbidi_uni_" + code;
+        const peerIdToConnect = "kumbidi_local_" + code;
         
         const peer = new Peer();
 
@@ -211,7 +212,7 @@
             });
 
             conn.on('error', (err) => {
-                document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു! ഒരേ നെറ്റ്‌വർക്കിലാണോ എന്ന് പരിശോധിക്കുക.";
+                document.getElementById('status').innerText = "കണക്ഷൻ പരാജയപ്പെട്ടു! കോഡ് ശരിയാണോ എന്ന് പരിശോധിക്കുക.";
             });
         });
     }

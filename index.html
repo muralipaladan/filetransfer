@@ -3,7 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>KUMBIDI - High-Speed P2P File Transfer</title>
-    <!-- GitHub വഴി സിഗ്നലിംഗിനും ക്യുആർ കോഡിനുമുള്ള ലൈബ്രറികൾ -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
@@ -33,7 +32,6 @@
 <div class="box">
     <h2 class="center">KUMBIDI High-Speed Share</h2>
     
-    <!-- Home / Sender Section -->
     <div id="main-section">
         <p class="center" style="font-size: 13px; color: #666;">Connect via same Wi-Fi, Hotspot or LAN</p>
         <input type="file" id="fileInput">
@@ -56,23 +54,21 @@
         <p id="status"></p>
     </div>
 
-    <!-- Receiver Progress Section -->
     <div id="receiver-section" style="display:none;" class="center">
         <h3 id="receive-title">Receiving File...</h3>
         <p id="receive-status">Establishing direct local link...</p>
         <div class="progress-bar" id="progressBar">
             <div class="progress-fill" id="progressFill"></div>
         </div>
-        <div class="speed-info" id="speedInfo">Speed: Calculating...</div>
+        <div class="speed-info" id="speedInfo">Transferring at high speed...</div>
     </div>
 
-    <!-- Working Procedure Section -->
     <div class="procedure-box">
         <h3>പ്രവർത്തിക്കുന്ന വിധം (High-Speed Working):</h3>
         <ol>
-            <li><strong>കണക്ഷൻ സിഗ്നലിംഗ്:</strong> GitHub Page (`muralipaladan.github.io/filetransfer`) വഴി സെൻഡറും റിസീവറും തമ്മിൽ പരസ്പരം തിരിച്ചറിയാൻ സഹായിക്കുന്ന QR കോഡും 12 അക്ക നമ്പറും ജനറേറ്റ് ചെയ്യുന്നു.</li>
-            <li><strong>നേരിട്ടുള്ള ലോക്കൽ ലിങ്ക് (Direct Local P2P):</strong> QR കോഡ് സ്കാൻ ചെയ്യുമ്പോഴോ നമ്പർ ടൈപ്പ് ചെയ്യുമ്പോഴോ ഗിറ്റ്‌ഹബ് വഴിയുള്ള ബന്ധം വഴിമാറി, രണ്ട് ഡിവൈസുകളും ഒരേ ലോക്കൽ വൈഫൈ/ഹോട്ട്‌സ്പോട്ട് വഴി **നേരിട്ട് (Direct P2P)** കണക്റ്റ് ആകുന്നു.</li>
-            <li><strong>ഹൈസ്പീഡ് ഫയൽ കൈമാറ്റം:</strong> ഫയലുകൾ വലിയ പാക്കറ്റുകളായി (64KB Chunks) ഒരേ നെറ്റ്‌വർക്കിൽ അതിവേഗം (Local LAN Speed) നഷ്ടങ്ങളില്ലാതെ കൈമാറപ്പെടുന്നു.</li>
+            <li><strong>കണക്ഷൻ സിഗ്നലിംഗ്:</strong> GitHub Page വഴി സെൻഡറും റിസീവറും തമ്മിലുള്ള ബന്ധത്തിനായുള്ള ക്യുആർ കോഡും 12 അക്ക നമ്പറും ജനറേറ്റ് ചെയ്യുന്നു.</li>
+            <li><strong>നേരിട്ടുള്ള ലോക്കൽ ലിങ്ക് (Direct Local P2P):</strong> കോഡ് നൽകി കണക്റ്റ് ചെയ്യുമ്പോൾ ഗിറ്റ്‌ഹബ് വഴിയുള്ള ബന്ധം വഴിമാറി, രണ്ട് ഡിവൈസുകളും ഒരേ ലോക്കൽ വൈഫൈ/ഹോട്ട്‌സ്പോട്ട് വഴി **നേരിട്ട് (Direct P2P)** ബന്ധിക്കപ്പെടുന്നു.</li>
+            <li><strong>ഹൈസ്പീഡ് ഫയൽ കൈമാറ്റം:</strong> ഫയലുകൾ വലിയ പാക്കറ്റുകളായി (64KB Chunks) ഒരേ നെറ്റ്‌വർക്കിൽ യാതൊരു ഡിലേയും കൂടാതെ അതിവേഗം കൈമാറപ്പെടുന്നു.</li>
         </ol>
     </div>
 </div>
@@ -103,7 +99,7 @@
             return;
         }
 
-        document.getElementById('status').innerText = "Registering connection via GitHub...";
+        document.getElementById('status').innerText = "Registering connection...";
         
         if(activePeer) { activePeer.destroy(); }
 
@@ -111,15 +107,8 @@
         const cleanCode = rawCode.replace(/\s+/g, '');
         const peerId = "kumbidi_hs_" + cleanCode;
 
-        // Local-first config options for PeerJS to prefer direct local connection
-        activePeer = new Peer(peerId, {
-            config: {
-                'iceServers': [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-            }
-        });
+        // Default PeerJS connection without slow STUN lookups for local speed
+        activePeer = new Peer(peerId);
 
         activePeer.on('open', (id) => {
             const shareLink = `${BASE_URL}?code=${cleanCode}`;
@@ -135,7 +124,7 @@
 
             document.getElementById('numericCodeDisplay').innerText = rawCode;
             document.getElementById('share-info').style.display = 'block';
-            document.getElementById('status').innerText = "Ready! Scan QR or type code. Transfer will be direct & high-speed.";
+            document.getElementById('status').innerText = "Ready! Scan QR or type code. Transfer will be instant.";
         });
 
         activePeer.on('error', (err) => {
@@ -147,7 +136,7 @@
         });
 
         activePeer.on('connection', (conn) => {
-            document.getElementById('status').innerText = "Direct local connection established! Sending file at max speed...";
+            document.getElementById('status').innerText = "Connected! Sending file...";
             const file = fileInput.files[0];
             
             conn.on('open', () => {
@@ -158,7 +147,7 @@
                     size: file.size
                 });
 
-                // Optimized for high speed: 64KB chunks
+                // Larger chunks (64KB) for max speed
                 const chunkSize = 65536; 
                 const reader = new FileReader();
                 let offset = 0;
@@ -173,7 +162,7 @@
                     if (offset < file.size) {
                         readNextChunk();
                     } else {
-                        document.getElementById('status').innerText = "File sent successfully at high speed!";
+                        document.getElementById('status').innerText = "File sent successfully!";
                     }
                 };
 
@@ -201,20 +190,13 @@
         document.getElementById('main-section').style.display = 'none';
         document.getElementById('receiver-section').style.display = 'block';
         
-        const peer = new Peer({
-            config: {
-                'iceServers': [
-                    { urls: 'stun:stun.l.google.com:19302' },
-                    { urls: 'stun:stun1.l.google.com:19302' }
-                ]
-            }
-        });
+        const peer = new Peer();
 
         peer.on('open', (id) => {
-            const conn = peer.connect(peerIdToConnect, { reliable: true });
+            const conn = peer.connect(peerIdToConnect, { reliable: false });
             
             conn.on('open', () => {
-                document.getElementById('receive-status').innerText = "Direct P2P Link Active! Receiving file...";
+                document.getElementById('receive-status').innerText = "Connected! Receiving file...";
                 document.getElementById('progressBar').style.display = 'block';
             });
 
@@ -222,37 +204,28 @@
             let totalSize = 0;
             let fileChunks = [];
             let fileMeta = null;
-            let startTime = Date.now();
 
             conn.on('data', (data) => {
                 if (data.type === 'meta') {
                     fileMeta = data;
                     totalSize = data.size;
                     document.getElementById('receive-title').innerText = `Downloading ${fileMeta.fileName}`;
-                    startTime = Date.now();
                 } else if (data.type === 'chunk') {
                     fileChunks.push(data.payload);
                     receivedSize += data.payload.byteLength;
                     
                     let percent = Math.round((receivedSize / totalSize) * 100);
                     document.getElementById('progressFill').style.width = percent + '%';
-                    
-                    // Speed Calculation
-                    let elapsedTime = (Date.now() - startTime) / 1000; // seconds
-                    if(elapsedTime > 0) {
-                        let speedBps = receivedSize / elapsedTime; // bytes per second
-                        let speedMbps = (speedBps * 8) / (1024 * 1024); // Mbps
-                        document.getElementById('speedInfo').innerText = `Speed: ${speedMbps.toFixed(2)} Mbps (${percent}%)`;
-                    }
+                    document.getElementById('speedInfo').innerText = `Progress: ${percent}% (${Math.round(receivedSize/1024)} KB / ${Math.round(totalSize/1024)} KB)`;
 
-                    if (receivedSize === totalSize) {
+                    if (receivedSize >= totalSize) {
                         const blob = new Blob(fileChunks, { type: fileMeta.fileType });
                         const url = URL.createObjectURL(blob);
                         const a = document.createElement('a');
                         a.href = url;
                         a.download = fileMeta.fileName;
                         a.click();
-                        document.getElementById('receive-status').innerText = "High-speed download completed successfully!";
+                        document.getElementById('receive-status').innerText = "Download completed successfully!";
                         document.getElementById('speedInfo').innerText = "Transfer finished.";
                     }
                 }

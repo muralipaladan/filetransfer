@@ -3,10 +3,10 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>കുമ്പിടി (KUMBIDI) - Local & Hotspot File Transfer</title>
+    <title>കുമ്പിടി (KUMBIDI) - Local Network P2P File Transfer</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <!-- PeerJS for P2P connection -->
+    <!-- PeerJS for direct WebRTC P2P connection -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <!-- QR Code Generator -->
     <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
@@ -18,63 +18,61 @@
         body { font-family: 'Manjari', sans-serif; }
     </style>
 </head>
-<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4">
+<body class="bg-slate-900 text-slate-100 min-h-screen flex flex-col items-center justify-between p-4 selection:bg-indigo-500 selection:text-white">
 
-    <!-- Notification Toast -->
-    <div id="toast" class="fixed top-5 bg-indigo-600 text-white px-6 py-3 rounded-xl shadow-lg transition-all duration-300 transform -translate-y-20 opacity-0 z-50">
+    <div id="toast" class="fixed top-5 bg-indigo-600 text-white px-6 py-3 rounded-2xl shadow-2xl transition-all duration-300 transform -translate-y-20 opacity-0 z-50 text-sm font-medium border border-indigo-500/30">
         <span id="toastMessage">സന്ദേശം</span>
     </div>
 
-    <!-- Header -->
     <header class="w-full max-w-md text-center py-4">
-        <h1 class="text-4xl font-bold tracking-wider text-indigo-400">കുമ്പിടി</h1>
-        <p class="text-sm text-slate-400 mt-1">ഹോട്ട്സ്പോട്ട് & ലോക്കൽ നെറ്റ്വർക്ക് ഫയൽ കൈമാറ്റം</p>
+        <h1 class="text-4xl font-extrabold tracking-wider text-indigo-400 drop-shadow-md">കുമ്പിടി</h1>
+        <p class="text-xs text-slate-400 mt-1">ഒരേ വൈഫൈ / ഹോട്ട്സ്പോട്ട് വഴി ഡയറക്റ്റ് ഫയൽ കൈമാറ്റം</p>
     </header>
 
-    <!-- Main Content Container -->
-    <main class="w-full max-w-md bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 flex flex-col gap-6">
+    <main class="w-full max-w-md bg-slate-800/90 backdrop-blur-md rounded-3xl p-6 shadow-2xl border border-slate-700/80 flex flex-col gap-6">
 
-        <!-- Hotspot Helper Banner -->
-        <div class="bg-indigo-950/60 border border-indigo-500/30 p-3 rounded-2xl text-xs text-indigo-200 leading-relaxed">
-            💡 <b>ടിപ്പ്:</b> ഇന്റർനെറ്റ് ഇല്ലാതെ കണക്റ്റ് ചെയ്യാൻ, ഒരു ഫോണിൽ <b>Hotspot</b> ഓൺ ചെയ്ത് മറ്റേ ഫോൺ ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക!
+        <!-- Hotspot & Local Network Helper Info -->
+        <div class="bg-indigo-950/50 border border-indigo-500/30 p-3 rounded-2xl text-xs text-indigo-200 leading-relaxed flex items-start gap-2">
+            <span class="text-lg">💡</span>
+            <div><b>ലോക്കൽ ടിപ്പ്:</b> ഇന്റർനെറ്റ് ഡാറ്റയേതുമില്ലാതെ ഫയലുകൾ അയക്കാൻ ഒരു ഫോണിൽ <b>Hotspot</b> ഓൺ ചെയ്ത് മറ്റേ ഡിവൈസ് ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക!</div>
         </div>
 
-        <!-- Mode Selection Tabs -->
-        <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1.5 rounded-2xl">
-            <button id="tabSender" onclick="switchTab('sender')" class="py-2.5 rounded-xl font-semibold transition-all bg-indigo-600 text-white">പ്രേഷകൻ (Sender)</button>
-            <button id="tabReceiver" onclick="switchTab('receiver')" class="py-2.5 rounded-xl font-semibold transition-all text-slate-400 hover:text-white">സ്വീകർത്താവ് (Receiver)</button>
+        <!-- Mode Selection Tabs (പ്രേഷകൻ / സ്വീകർത്താവ്) -->
+        <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1.5 rounded-2xl border border-slate-800">
+            <button id="tabSender" onclick="switchTab('sender')" class="py-2.5 rounded-xl font-semibold transition-all text-sm bg-indigo-600 text-white shadow-md">പ്രേഷകൻ (Sender)</button>
+            <button id="tabReceiver" onclick="switchTab('receiver')" class="py-2.5 rounded-xl font-semibold transition-all text-sm text-slate-400 hover:text-white">സ്വീകർത്താവ് (Receiver)</button>
         </div>
 
         <!-- ================= SENDER SECTION ================= -->
         <div id="senderSection" class="flex flex-col gap-4">
             <div class="flex flex-col gap-2">
                 <label class="text-sm font-semibold text-slate-300">അയക്കേണ്ട ഫയൽ തിരഞ്ഞെടുക്കുക</label>
-                <input type="file" id="fileInput" class="w-full text-sm text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-sm file:font-semibold file:bg-indigo-900/50 file:text-indigo-300 hover:file:bg-indigo-900 cursor-pointer border border-slate-700 rounded-xl p-1 bg-slate-900/50">
+                <input type="file" id="fileInput" class="w-full text-xs text-slate-400 file:mr-4 file:py-2.5 file:px-4 file:rounded-xl file:border-0 file:text-xs file:font-semibold file:bg-indigo-900/60 file:text-indigo-300 hover:file:bg-indigo-900 cursor-pointer border border-slate-700/80 rounded-xl p-1 bg-slate-900/50 transition-all">
             </div>
 
-            <button onclick="startHosting()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-indigo-600/30">
-                കണക്ഷൻ തുടങ്ങുക (Start)
+            <button onclick="startHosting()" class="w-full bg-indigo-600 hover:bg-indigo-500 text-white font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-indigo-600/30 text-sm flex items-center justify-center gap-2">
+                <span>കണക്ഷൻ തുടങ്ങുക (Start)</span>
             </button>
 
-            <!-- Sender Status & QR Area -->
-            <div id="senderStatusArea" class="hidden flex flex-col items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50">
-                <p id="senderStatusText" class="text-sm text-amber-400 font-medium animate-pulse">കണക്ഷൻ തയ്യാറാകുന്നു...</p>
+            <!-- Sender Status & Instant QR Code Display -->
+            <div id="senderStatusArea" class="hidden flex flex-col items-center gap-4 bg-slate-900/70 p-4 rounded-2xl border border-slate-700/50 animate-fadeIn">
+                <p id="senderStatusText" class="text-xs text-amber-400 font-medium animate-pulse text-center">കണക്ഷൻ തയ്യാറാകുന്നു...</p>
                 
-                <!-- QR Code Display -->
-                <div class="bg-white p-3 rounded-2xl shadow-md">
+                <!-- QR Code Box -->
+                <div class="bg-white p-3 rounded-2xl shadow-lg border-2 border-indigo-500/20">
                     <canvas id="qrcodeCanvas"></canvas>
                 </div>
 
-                <div class="flex gap-2 w-full">
-                    <button onclick="downloadQR()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 px-3 rounded-xl font-medium transition-all">QR ഡൗൺലോഡ്</button>
-                    <button onclick="copyLink()" class="flex-1 bg-slate-700 hover:bg-slate-600 text-xs py-2 px-3 rounded-xl font-medium transition-all">ലിങ്ക് കോപ്പി</button>
-                    <button onclick="shareWhatsApp()" class="flex-1 bg-emerald-600 hover:bg-emerald-500 text-xs py-2 px-3 rounded-xl font-medium transition-all">WhatsApp</button>
+                <div class="grid grid-cols-3 gap-2 w-full">
+                    <button onclick="downloadQR()" class="bg-slate-700 hover:bg-slate-600 text-xs py-2 px-2 rounded-xl font-medium transition-all text-center">QR ഡൗൺലോഡ്</button>
+                    <button onclick="copyLink()" class="bg-slate-700 hover:bg-slate-600 text-xs py-2 px-2 rounded-xl font-medium transition-all text-center">ലിങ്ക് കോപ്പി</button>
+                    <button onclick="shareWhatsApp()" class="bg-emerald-600 hover:bg-emerald-500 text-xs py-2 px-2 rounded-xl font-medium transition-all text-center">WhatsApp</button>
                 </div>
             </div>
 
-            <!-- Transfer Progress -->
-            <div id="senderProgressArea" class="hidden flex flex-col gap-2 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50">
-                <div class="flex justify-between text-sm">
+            <!-- Transfer Progress Bar -->
+            <div id="senderProgressArea" class="hidden flex flex-col gap-2 bg-slate-900/70 p-4 rounded-2xl border border-slate-700/50">
+                <div class="flex justify-between text-xs font-medium">
                     <span id="senderProgressLabel">അയക്കുന്നു...</span>
                     <span id="senderPercent">0%</span>
                 </div>
@@ -89,34 +87,34 @@
             <div id="receiverInputArea" class="flex flex-col gap-4">
                 <div class="flex flex-col gap-2">
                     <label class="text-sm font-semibold text-slate-300">പിയർ കോഡ് നൽകുക അല്ലെങ്കിൽ സ്കാൻ ചെയ്യുക</label>
-                    <input type="text" id="peerIdInput" placeholder="Peer ID ഇവിടെ നൽകുക..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500">
+                    <input type="text" id="peerIdInput" placeholder="Peer ID ഇവിടെ നൽകുക..." class="bg-slate-900 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-indigo-500 text-slate-100 placeholder-slate-500">
                 </div>
 
-                <button onclick="connectToPeer()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/30">
+                <button onclick="connectToPeer()" class="w-full bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-600/30 text-sm">
                     കണക്റ്റ് ചെയ്യുക
                 </button>
 
-                <div class="text-center text-xs text-slate-500 uppercase font-bold tracking-wider my-1">- അല്ലെങ്കിൽ -</div>
+                <div class="text-center text-xs text-slate-500 uppercase font-bold tracking-wider my-0.5">- അല്ലെങ്കിൽ -</div>
 
-                <!-- Camera / Upload Options -->
+                <!-- Camera Scanner & Screenshot Upload Options -->
                 <div class="grid grid-cols-2 gap-2">
-                    <button onclick="startScanner()" class="bg-slate-700 hover:bg-slate-600 text-sm py-2.5 px-4 rounded-xl font-medium transition-all">ക്യാമറ സ്കാനർ</button>
-                    <label class="bg-slate-700 hover:bg-slate-600 text-sm py-2.5 px-4 rounded-xl font-medium text-center cursor-pointer">
+                    <button onclick="startScanner()" class="bg-slate-700 hover:bg-slate-600 text-xs py-2.5 px-3 rounded-xl font-medium transition-all text-center">ക്യാമറ സ്കാനർ</button>
+                    <label class="bg-slate-700 hover:bg-slate-600 text-xs py-2.5 px-3 rounded-xl font-medium text-center cursor-pointer block">
                         ഫോട്ടോ അപ്‌ലോഡ്
                         <input type="file" accept="image/*" onchange="handleQRUpload(event)" class="hidden">
                     </label>
                 </div>
 
-                <!-- Scanner Viewport -->
+                <!-- QR Camera Viewport Container -->
                 <div id="reader" class="hidden rounded-xl overflow-hidden border border-slate-700 mt-2"></div>
             </div>
 
-            <!-- Receiver Status & Progress -->
-            <div id="receiverStatusArea" class="hidden flex flex-col items-center gap-4 bg-slate-900/60 p-4 rounded-2xl border border-slate-700/50">
-                <p id="receiverStatusText" class="text-sm text-amber-400 font-medium">കണക്റ്റ് ആകുന്നു...</p>
+            <!-- Receiver Status & Progress Area -->
+            <div id="receiverStatusArea" class="hidden flex flex-col items-center gap-4 bg-slate-900/70 p-4 rounded-2xl border border-slate-700/50">
+                <p id="receiverStatusText" class="text-xs text-amber-400 font-medium text-center">കണക്റ്റ് ആകുന്നു...</p>
                 
                 <div id="receiverProgressWrapper" class="w-full flex flex-col gap-2 hidden">
-                    <div class="flex justify-between text-sm">
+                    <div class="flex justify-between text-xs font-medium">
                         <span id="receiverProgressLabel">സ്വീകരിക്കുന്നു...</span>
                         <span id="receiverPercent">0%</span>
                     </div>
@@ -126,38 +124,39 @@
                 </div>
 
                 <div id="downloadArea" class="hidden w-full flex flex-col gap-2">
-                    <a id="downloadBtn" class="w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3 rounded-xl transition-all shadow-lg shadow-emerald-600/30 block">ഫയൽ ഡൗൺലോഡ് ചെയ്യുക</a>
+                    <a id="downloadBtn" class="w-full text-center bg-emerald-600 hover:bg-emerald-500 text-white font-semibold py-3.5 rounded-2xl transition-all shadow-lg shadow-emerald-600/30 text-sm block">ഫയൽ ഡൗൺലോഡ് ചെയ്യുക</a>
                 </div>
             </div>
         </div>
 
     </main>
 
-    <!-- Footer -->
     <footer class="w-full max-w-md text-center py-2 text-xs text-slate-500">
-        കുമ്പിടി v3.0 - Hotspot P2P File Sharing
+        കുമ്പിടി v3.5 - Direct P2P Offline File Transfer
     </footer>
 
-    <!-- Script Logic -->
     <script>
         let peer = null;
         let conn = null;
         let myPeerId = null;
         let wakeLock = null;
 
+        // Prevent screen sleep during active transfer
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                 }
             } catch (err) {
-                console.error(err);
+                console.error('Wake lock error:', err);
             }
         }
 
+        // Toast notification handler
         function showToast(message) {
             const toast = document.getElementById('toast');
-            document.getElementById('toastMessage').innerText = message;
+            document.getElementById('toastMessageinnerText' || 'toastMessage').innerText = message;
+            document.getElementById('toastMessage').textContent = message;
             toast.classList.remove('-translate-y-20', 'opacity-0');
             toast.classList.add('translate-y-0', 'opacity-100');
             setTimeout(() => {
@@ -166,6 +165,7 @@
             }, 3000);
         }
 
+        // Tab switching logic (Sender / Receiver)
         function switchTab(role) {
             const senderSec = document.getElementById('senderSection');
             const receiverSec = document.getElementById('receiverSection');
@@ -175,16 +175,17 @@
             if (role === 'sender') {
                 senderSec.classList.remove('hidden');
                 receiverSec.classList.add('hidden');
-                tabSender.className = "py-2.5 rounded-xl font-semibold transition-all bg-indigo-600 text-white";
-                tabReceiver.className = "py-2.5 rounded-xl font-semibold transition-all text-slate-400 hover:text-white";
+                tabSender.className = "py-2.5 rounded-xl font-semibold transition-all text-sm bg-indigo-600 text-white shadow-md";
+                tabReceiver.className = "py-2.5 rounded-xl font-semibold transition-all text-sm text-slate-400 hover:text-white";
             } else {
                 senderSec.classList.add('hidden');
                 receiverSec.classList.remove('hidden');
-                tabReceiver.className = "py-2.5 rounded-xl font-semibold transition-all bg-emerald-600 text-white";
-                tabSender.className = "py-2.5 rounded-xl font-semibold transition-all text-slate-400 hover:text-white";
+                tabReceiver.className = "py-2.5 rounded-xl font-semibold transition-all text-sm bg-emerald-600 text-white shadow-md";
+                tabSender.className = "py-2.5 rounded-xl font-semibold transition-all text-sm text-slate-400 hover:text-white";
             }
         }
 
+        // Auto-connect if URL has ?peer_id=...
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const peerParam = urlParams.get('peer_id');
@@ -193,11 +194,11 @@
                 document.getElementById('peerIdInput').value = peerParam;
                 setTimeout(() => {
                     connectToPeer();
-                }, 1000);
+                }, 800);
             }
         };
 
-        // ================= SENDER LOGIC =================
+        // ================= SENDER WORKFLOW =================
         function startHosting() {
             const fileInput = document.getElementById('fileInput');
             if (fileInput.files.length === 0) {
@@ -207,8 +208,9 @@
 
             requestWakeLock();
             document.getElementById('senderStatusArea').classList.remove('hidden');
-            
-            // Local network optimized PeerJS config (Forces local candidate gathering)
+            document.getElementById('senderStatusText').innerText = 'കണക്ഷൻ തയ്യാറാകുന്നു...';
+
+            // Initialize Peer with local-optimized STUN servers
             peer = new Peer({
                 config: {
                     iceServers: [
@@ -222,17 +224,18 @@
                 myPeerId = id;
                 const shareLink = window.location.origin + window.location.pathname + '?peer_id=' + id;
                 
-                QRCode.toCanvas(document.getElementById('qrcodeCanvas'), shareLink, { width: 180 }, function (error) {
+                // Generate QR Code containing direct connection link
+                QRCode.toCanvas(document.getElementById('qrcodeCanvas'), shareLink, { width: 170, margin: 1 }, function (error) {
                     if (error) console.error(error);
                 });
 
-                document.getElementById('senderStatusText').innerText = 'കണക്ഷൻ തയ്യാറാണ്! ഡിവൈസിനായി കാത്തിരിക്കുന്നു...';
-                showToast('കണക്ഷൻ ലിങ്ക് തയ്യാറായി!');
+                document.getElementById('senderStatusText').innerText = 'ഡിവൈസിനായി കാത്തിരിക്കുന്നു... (സ്കാൻ ചെയ്യുക)';
+                showToast('QR കോഡ് ലിങ്ക് തയ്യാറായി!');
             });
 
             peer.on('connection', (connection) => {
                 conn = connection;
-                document.getElementById('senderStatusText').innerText = 'കണക്റ്റ് ആയി! ഫയൽ അയക്കുന്നു...';
+                document.getElementById('senderStatusText').innerText = 'കണക്റ്റ് ആയി! ഫയൽ കൈമാറുന്നു...';
                 document.getElementById('senderProgressArea').classList.remove('hidden');
                 sendFileData();
             });
@@ -247,6 +250,7 @@
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             
+            // Send file header metadata first
             conn.send({
                 type: 'file-meta',
                 name: file.name,
@@ -254,7 +258,7 @@
                 fileType: file.type
             });
 
-            const chunkSize = 64 * 1024; // 64KB chunks for faster local transfer speed
+            const chunkSize = 64 * 1024; // 64KB chunk size for optimal local speed
             const reader = new FileReader();
             let offset = 0;
 
@@ -272,8 +276,8 @@
                 if (offset < file.size) {
                     readNextChunk();
                 } else {
-                    document.getElementById('senderStatusText').innerText = 'ഫയൽ അയക്കൽ പൂർത്തിയായി!';
-                    showToast('ഫയൽ വിജയകരമായി അയച്ചു!');
+                    document.getElementById('senderStatusText').innerText = 'ഫയൽ അയക്കൽ വിജയകരമായി പൂർത്തിയായി!';
+                    showToast('ഫയൽ പൂർണ്ണമായി അയച്ചു!');
                 }
             };
 
@@ -306,7 +310,7 @@
             a.click();
         }
 
-        // ================= RECEIVER LOGIC =================
+        // ================= RECEIVER WORKFLOW =================
         function connectToPeer() {
             const peerId = document.getElementById('peerIdInput').value.trim();
             if (!peerId) {
@@ -354,7 +358,7 @@
                         document.getElementById('receiverProgressBar').style.width = percent + '%';
 
                         if (receivedSize >= incomingFile.size) {
-                            document.getElementById('receiverStatusText').innerText = 'ഫയൽ സ്വീകരിക്കുന്നത് വിജയിച്ചു!';
+                            document.getElementById('receiverStatusText').innerText = 'ഫയൽ സ്വീകരിക്കുന്നത് വിജയകരമായി പൂർത്തിയായി!';
                             showToast('ഫയൽ ഡൗൺലോഡിന് തയ്യാർ!');
 
                             const blob = new Blob(incomingFile.chunks, { type: incomingFile.type });
@@ -374,12 +378,13 @@
             });
         }
 
+        // Camera QR Scanner integration
         function startScanner() {
             document.getElementById('reader').classList.remove('hidden');
             const html5QrCode = new Html5Qrcode("reader");
             html5QrCode.start(
                 { facingMode: "environment" },
-                { fps: 10, qrbox: 250 },
+                { fps: 10, qrbox: 240 },
                 (decodedText) => {
                     html5QrCode.stop();
                     document.getElementById('reader').classList.add('hidden');
@@ -403,6 +408,7 @@
             });
         }
 
+        // Scan QR code from uploaded screenshot/image
         function handleQRUpload(event) {
             const file = event.target.files[0];
             if (!file) return;

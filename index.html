@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>കുമ്പിടി (KUMBIDI) - Peer-to-Peer File Transfer</title>
+    <title>കുമ്പിടി (KUMBIDI) - Local & Hotspot File Transfer</title>
     <!-- Tailwind CSS -->
     <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
     <!-- PeerJS for P2P connection -->
@@ -28,11 +28,16 @@
     <!-- Header -->
     <header class="w-full max-w-md text-center py-4">
         <h1 class="text-4xl font-bold tracking-wider text-indigo-400">കുമ്പിടി</h1>
-        <p class="text-sm text-slate-400 mt-1">ഡയറക്റ്റ് പിയർ-ടു-പിയർ ഫയൽ കൈമാറ്റം</p>
+        <p class="text-sm text-slate-400 mt-1">ഹോട്ട്സ്പോട്ട് & ലോക്കൽ നെറ്റ്വർക്ക് ഫയൽ കൈമാറ്റം</p>
     </header>
 
     <!-- Main Content Container -->
     <main class="w-full max-w-md bg-slate-800 rounded-3xl p-6 shadow-2xl border border-slate-700 flex flex-col gap-6">
+
+        <!-- Hotspot Helper Banner -->
+        <div class="bg-indigo-950/60 border border-indigo-500/30 p-3 rounded-2xl text-xs text-indigo-200 leading-relaxed">
+            💡 <b>ടിപ്പ്:</b> ഇന്റർനെറ്റ് ഇല്ലാതെ കണക്റ്റ് ചെയ്യാൻ, ഒരു ഫോണിൽ <b>Hotspot</b> ഓൺ ചെയ്ത് മറ്റേ ഫോൺ ആ വൈഫൈയിലേക്ക് കണക്റ്റ് ചെയ്യുക!
+        </div>
 
         <!-- Mode Selection Tabs -->
         <div class="grid grid-cols-2 gap-2 bg-slate-900 p-1.5 rounded-2xl">
@@ -130,7 +135,7 @@
 
     <!-- Footer -->
     <footer class="w-full max-w-md text-center py-2 text-xs text-slate-500">
-        കുമ്പിടി v2.0 - Offline Secure File Sharing
+        കുമ്പിടി v3.0 - Hotspot P2P File Sharing
     </footer>
 
     <!-- Script Logic -->
@@ -140,7 +145,6 @@
         let myPeerId = null;
         let wakeLock = null;
 
-        // Screen Wake Lock API to prevent screen turning off
         async function requestWakeLock() {
             try {
                 if ('wakeLock' in navigator) {
@@ -181,7 +185,6 @@
             }
         }
 
-        // Auto Connect via URL Query parameter (?peer_id=XYZ)
         window.onload = () => {
             const urlParams = new URLSearchParams(window.location.search);
             const peerParam = urlParams.get('peer_id');
@@ -205,18 +208,25 @@
             requestWakeLock();
             document.getElementById('senderStatusArea').classList.remove('hidden');
             
-            peer = new Peer();
+            // Local network optimized PeerJS config (Forces local candidate gathering)
+            peer = new Peer({
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
 
             peer.on('open', (id) => {
                 myPeerId = id;
                 const shareLink = window.location.origin + window.location.pathname + '?peer_id=' + id;
                 
-                // Generate QR Code
                 QRCode.toCanvas(document.getElementById('qrcodeCanvas'), shareLink, { width: 180 }, function (error) {
                     if (error) console.error(error);
                 });
 
-                document.getElementById('senderStatusText').innerText = 'ആളുകൾക്കായി കാത്തിരിക്കുന്നു...';
+                document.getElementById('senderStatusText').innerText = 'കണക്ഷൻ തയ്യാറാണ്! ഡിവൈസിനായി കാത്തിരിക്കുന്നു...';
                 showToast('കണക്ഷൻ ലിങ്ക് തയ്യാറായി!');
             });
 
@@ -237,7 +247,6 @@
             const fileInput = document.getElementById('fileInput');
             const file = fileInput.files[0];
             
-            // Send file metadata first
             conn.send({
                 type: 'file-meta',
                 name: file.name,
@@ -245,7 +254,7 @@
                 fileType: file.type
             });
 
-            const chunkSize = 16 * 1024; // 16KB chunks
+            const chunkSize = 64 * 1024; // 64KB chunks for faster local transfer speed
             const reader = new FileReader();
             let offset = 0;
 
@@ -310,7 +319,14 @@
             document.getElementById('receiverStatusArea').classList.remove('hidden');
             document.getElementById('receiverStatusText').innerText = 'പ്രേഷകനുമായി ബന്ധപ്പെടുന്നു...';
 
-            peer = new Peer();
+            peer = new Peer({
+                config: {
+                    iceServers: [
+                        { urls: 'stun:stun.l.google.com:19302' },
+                        { urls: 'stun:stun1.l.google.com:19302' }
+                    ]
+                }
+            });
 
             peer.on('open', () => {
                 conn = peer.connect(peerId);
@@ -358,7 +374,6 @@
             });
         }
 
-        // QR Scanner using Html5Qrcode
         function startScanner() {
             document.getElementById('reader').classList.remove('hidden');
             const html5QrCode = new Html5Qrcode("reader");
@@ -369,7 +384,6 @@
                     html5QrCode.stop();
                     document.getElementById('reader').classList.add('hidden');
                     
-                    // Extract peer_id from scanned URL
                     try {
                         const url = new URL(decodedText);
                         const peerId = url.searchParams.get('peer_id');
@@ -389,7 +403,6 @@
             });
         }
 
-        // Handle uploaded QR code image file
         function handleQRUpload(event) {
             const file = event.target.files[0];
             if (!file) return;

@@ -3,261 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ധാര (Dahara) - File Transfer</title>
-    <!-- PeerJS ലൈബ്രറി -->
+    <title>ധാര (Dahara) - Fast File Share</title>
+    <!-- PeerJS Library -->
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { 
-            font-family: Arial, sans-serif; 
-            text-align: center; 
-            background-color: #f4f7f6; 
-            padding: 20px; 
-            color: #333; 
-        }
-        .container { 
-            max-width: 400px; 
-            margin: auto; 
-            background: white; 
-            padding: 20px; 
-            border-radius: 10px; 
-            box-shadow: 0px 4px 10px rgba(0,0,0,0.1); 
-        }
-        h2 { color: #0056b3; margin-bottom: 5px;}
-        .subtitle { color: #666; font-size: 14px; margin-bottom: 20px;}
-        button { 
-            background: #0056b3; 
-            color: white; 
-            border: none; 
-            padding: 10px 20px; 
-            margin: 10px 0; 
-            border-radius: 5px; 
-            cursor: pointer; 
-            font-size: 16px; 
-            width: 100%; 
-        }
-        button:hover { background: #004494; }
-        input[type="number"], input[type="file"] { 
-            width: 90%; 
-            padding: 10px; 
-            margin: 10px 0; 
-            border-radius: 5px; 
-            border: 1px solid #ccc; 
-            font-size: 16px; 
-        }
-        #progressBar { 
-            width: 100%; 
-            background: #e0e0e0; 
-            border-radius: 5px; 
-            margin-top: 15px; 
-            display: none; 
-            overflow: hidden; 
-        }
-        #progressFill { 
-            height: 20px; 
-            width: 0%; 
-            background: #28a745; 
-            transition: width 0.2s; 
-        }
-        .status { margin-top: 15px; font-weight: bold; color: #d9534f; }
-        .info { color: #0056b3; font-size: 14px; margin-top: 5px; font-weight: bold;}
+        * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body { background-color: #eef2f5; margin: 0; padding: 20px; display: flex; justify-content: center; align-items: center; min-height: 100vh; }
+        .card { background: #ffffff; width: 100%; max-width: 420px; padding: 25px; border-radius: 16px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); text-align: center; }
+        h2 { color: #1e88e5; margin: 0 0 5px 0; font-size: 26px; }
+        p.subtitle { color: #666; font-size: 13px; margin-bottom: 25px; }
+        
+        .btn { background: #1e88e5; color: white; border: none; padding: 14px; width: 100%; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; transition: 0.2s; margin-top: 8px; }
+        .btn:hover { background: #1565c0; }
+        .btn-green { background: #43a047; }
+        .btn-green:hover { background: #2e7d32; }
+        
+        input[type="number"] { width: 100%; padding: 14px; font-size: 22px; text-align: center; letter-spacing: 5px; border: 2px solid #e0e0e0; border-radius: 10px; outline: none; font-weight: bold; margin-bottom: 10px; }
+        input[type="number"]:focus { border-color: #1e88e5; }
+        
+        .pin-box { background: #e8f5e9; border: 2px dashed #43a047; padding: 15px; border-radius: 12px; margin: 15px 0; }
+        .pin-number { font-size: 36px; font-weight: bold; color: #2e7d32; letter-spacing: 6px; }
+        
+        .divider { height: 1px; background: #e0e0e0; margin: 20px 0; }
+        
+        .file-input-wrapper { margin: 15px 0; }
+        input[type="file"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 8px; background: #f9f9f9; }
+
+        .progress-container { width: 100%; background: #e0e0e0; border-radius: 8px; height: 12px; overflow: hidden; margin-top: 15px; display: none; }
+        .progress-bar { width: 0%; height: 100%; background: #43a047; transition: width 0.1s; }
+        
+        #status { font-weight: 600; font-size: 14px; color: #555; margin-top: 15px; min-height: 20px; }
+        #speedText { font-size: 12px; color: #777; margin-top: 5px; }
     </style>
 </head>
 <body>
 
-<div class="container">
+<div class="card">
     <h2>ധാര (Dahara)</h2>
-    <p class="subtitle">അതിവേഗ ലോക്കൽ ഫയൽ ട്രാൻസ്ഫർ</p>
+    <p class="subtitle">4-അക്ക PIN വഴി അതിവേഗ ഫയൽ കൈമാറ്റം</p>
 
-    <!-- റൂം ഉണ്ടാക്കാനും ജോയിൻ ചെയ്യാനുമുള്ള ഭാഗം -->
-    <div id="setupSection">
-        <button onclick="createRoom()">പുതിയ റൂം ഉണ്ടാക്കുക (Send)</button>
-        <hr style="border: 0; border-top: 1px solid #eee; margin: 20px 0;">
-        <p>അല്ലെങ്കിൽ</p>
-        <input type="number" id="joinPin" placeholder="4-അക്ക PIN അടിക്കുക">
-        <button onclick="joinRoom()" style="background: #28a745;">റൂമിൽ ജോയിൻ ചെയ്യുക (Receive)</button>
+    <!-- പ്രാരംഭ സെക്ഷൻ -->
+    <div id="startSection">
+        <button class="btn" onclick="generatePinRoom()">പുതിയ PIN ഉണ്ടാക്കുക (Create PIN)</button>
+        <div class="divider"></div>
+        <input type="number" id="joinPinInput" placeholder="PIN അടിക്കുക" pattern="\d*" oninput="if(this.value.length > 4) this.value = this.value.slice(0,4);">
+        <button class="btn btn-green" onclick="connectWithPin()">കണക്റ്റ് ചെയ്യുക (Connect)</button>
     </div>
 
-    <!-- PIN കാണിക്കുന്ന ഭാഗം -->
-    <div id="roomSection" style="display: none;">
-        <h3>നിങ്ങളുടെ PIN: <br><span id="myPinDisplay" style="color: #28a745; font-size: 32px;"></span></h3>
-        <p>മറ്റേ ഡിവൈസിൽ ഈ PIN അടിച്ചു ജോയിൻ ചെയ്യുക.</p>
+    <!-- PIN കാണിക്കുന്ന സെക്ഷൻ -->
+    <div id="pinDisplaySection" style="display: none;">
+        <p style="margin: 0; color: #555; font-size: 14px;">നിങ്ങളുടെ PIN നമ്പർ:</p>
+        <div class="pin-box">
+            <div class="pin-number" id="myPinText">----</div>
+        </div>
+        <p style="font-size: 12px; color: #777;">മറ്റേ ഫോണിൽ ഈ PIN അടിച്ച് "Connect" കൊടുക്കുക.</p>
     </div>
 
-    <!-- ഫയൽ അയക്കാനുള്ള ഭാഗം -->
+    <!-- ഫയൽ അയക്കാനുള്ള ഏരിയ (കണക്റ്റ് ആയാൽ മാത്രം കാണും) -->
     <div id="transferSection" style="display: none;">
-        <input type="file" id="fileInput">
-        <button onclick="sendFile()">ഫയൽ അയക്കുക</button>
+        <div style="color: #2e7d32; font-weight: bold; margin-bottom: 10px;">✅ ഫോണുകൾ ബന്ധിപ്പിച്ചു!</div>
+        <div class="file-input-wrapper">
+            <input type="file" id="filePicker">
+        </div>
+        <button class="btn btn-green" onclick="startSendingFile()">ഫയൽ അയക്കുക</button>
     </div>
 
-    <!-- സ്റ്റാറ്റസും പ്രോഗ്രസ്സും -->
-    <p id="status" class="status"></p>
-    
-    <div id="progressBar">
-        <div id="progressFill"></div>
+    <!-- സ്റ്റാറ്റസ് & പ്രോഗ്രസ്സ് -->
+    <div id="status">ഡിവൈസുകൾ ബന്ധിപ്പിക്കാൻ തയ്യാറാണ്...</div>
+    <div class="progress-container" id="progressContainer">
+        <div class="progress-bar" id="progressBar"></div>
     </div>
-    <p id="speedInfo" class="info"></p>
+    <div id="speedText"></div>
 </div>
 
 <script>
-    let peer, conn, selectedFile;
-    const prefix = "dahara-local-";
+    let peer = null;
+    let conn = null;
+    const PIN_PREFIX = "dahara-v3-pin-";
 
-    // കണക്ഷൻ എളുപ്പമാക്കാൻ കൂടുതൽ ഗൂഗിൾ STUN സെർവറുകൾ 
-    const peerOptions = {
+    // വിശ്വസനീയമായ പൊതു STUN സെർവറുകൾ
+    const peerConfig = {
         config: {
-            'iceServers': [
+            iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
                 { urls: 'stun:stun2.l.google.com:19302' },
-                { urls: 'stun:stun3.l.google.com:19302' },
-                { urls: 'stun:stun4.l.google.com:19302' }
+                { urls: 'stun:global.stun.twilio.com:3478' }
             ]
-        },
-        debug: 1
+        }
     };
 
-    function createRoom() {
-        let pin = Math.floor(1000 + Math.random() * 9000);
-        let myId = prefix + pin;
-        
-        document.getElementById('status').innerText = "സെർവറുമായി ബന്ധിപ്പിക്കുന്നു...";
-        peer = new Peer(myId, peerOptions);
-        
+    // 1. PIN റൂം ഉണ്ടാക്കുന്നു
+    function generatePinRoom() {
+        let pin = Math.floor(1000 + Math.random() * 9000).toString();
+        updateStatus("PIN ഉണ്ടാക്കുന്നു...");
+
+        if (peer) peer.destroy();
+        peer = new Peer(PIN_PREFIX + pin, peerConfig);
+
         peer.on('open', (id) => {
-            document.getElementById('setupSection').style.display = 'none';
-            document.getElementById('roomSection').style.display = 'block';
-            document.getElementById('myPinDisplay').innerText = pin;
-            document.getElementById('status').innerText = "മറ്റേ ഡിവൈസ് കണക്റ്റ് ആകാൻ കാത്തിരിക്കുന്നു...";
+            document.getElementById('startSection').style.display = 'none';
+            document.getElementById('pinDisplaySection').style.display = 'block';
+            document.getElementById('myPinText').innerText = pin;
+            updateStatus("മറ്റേ ഫോണിൽ ഈ PIN അടിക്കാൻ കാത്തിരിക്കുന്നു...");
         });
 
+        // ഡൂപ്ലിക്കേറ്റ് PIN വന്നാൽ തനിയെ വേറൊന്ന് ഉണ്ടാക്കും
         peer.on('error', (err) => {
-            document.getElementById('status').innerText = "സെർവർ തിരക്കിലാണ്. പേജ് റീഫ്രഷ് ചെയ്തു വീണ്ടും ശ്രമിക്കുക.";
-            console.error(err);
+            if (err.type === 'unavailable-id') {
+                generatePinRoom(); // വീണ്ടും ശ്രമിക്കുന്നു
+            } else {
+                updateStatus("സെർവർ തടസ്സം! പേജ് റീഫ്രഷ് ചെയ്തു വീണ്ടും ശ്രമിക്കുക.");
+            }
         });
 
         peer.on('connection', (connection) => {
             conn = connection;
-            
-            conn.on('open', () => {
-                document.getElementById('roomSection').style.display = 'none';
-                document.getElementById('transferSection').style.display = 'block';
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാണ്.";
-                document.getElementById('status').style.color = "#28a745";
-                setupReceiver();
-            });
-
-            conn.on('error', () => {
-                document.getElementById('status').innerText = "കണക്ഷൻ തകരാർ. വീണ്ടും ശ്രമിക്കുക.";
-                document.getElementById('status').style.color = "#d9534f";
-            });
+            setupConnectionListeners();
         });
     }
 
-    function joinRoom() {
-        let pin = document.getElementById('joinPin').value;
-        if(pin.length !== 4) { alert("ശരിയായ 4-അക്ക PIN അടിക്കുക!"); return; }
-        
-        document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യുന്നു (ഇതിന് കുറച്ചു സമയം എടുത്തേക്കാം)...";
-        peer = new Peer(peerOptions);
-        
+    // 2. PIN അടിച്ച് കണക്റ്റ് ചെയ്യുന്നു
+    function connectWithPin() {
+        let pin = document.getElementById('joinPinInput').value;
+        if (pin.length !== 4) {
+            alert("ദയവായി 4-അക്ക PIN നൽകുക!");
+            return;
+        }
+
+        updateStatus("ബന്ധിപ്പിക്കുന്നു... ദയവായി കാത്തിരിക്കൂ.");
+
+        if (peer) peer.destroy();
+        peer = new Peer(peerConfig);
+
         peer.on('open', () => {
-            conn = peer.connect(prefix + pin, { reliable: true }); // സ്ഥിരതയുള്ള ഡാറ്റ ട്രാൻസ്ഫർ
-            
-            conn.on('open', () => {
-                document.getElementById('setupSection').style.display = 'none';
-                document.getElementById('transferSection').style.display = 'block';
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ തിരഞ്ഞെടുത്ത് അയക്കുക.";
-                document.getElementById('status').style.color = "#28a745";
-                setupReceiver();
-            });
-            
-            conn.on('error', () => {
-                document.getElementById('status').innerText = "കണക്ഷൻ ലഭിച്ചില്ല. PIN ഒന്നുകൂടി നോക്കുക.";
-                document.getElementById('status').style.color = "#d9534f";
-            });
+            conn = peer.connect(PIN_PREFIX + pin, { reliable: true });
+            setupConnectionListeners();
         });
 
         peer.on('error', (err) => {
-            document.getElementById('status').innerText = "സെർവർ തിരക്കിലാണ് അല്ലെങ്കിൽ PIN തെറ്റാണ്.";
-            document.getElementById('status').style.color = "#d9534f";
-            console.error(err);
+            updateStatus("ബന്ധിപ്പിക്കാൻ കഴിഞ്ഞില്ല! PIN ശരിയാണോ എന്ന് നോക്കുക.");
         });
     }
 
-    function sendFile() {
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput.files.length === 0) { alert("ദയവായി ഒരു ഫയൽ തിരഞ്ഞെടുക്കുക!"); return; }
-        
-        selectedFile = fileInput.files[0];
-        document.getElementById('progressBar').style.display = 'block';
-        document.getElementById('status').innerText = "അയച്ചു തുടങ്ങുന്നു...";
-        document.getElementById('status').style.color = "#0056b3";
-        
-        conn.send({ type: 'meta', name: selectedFile.name, size: selectedFile.size, fileType: selectedFile.type });
+    // 3. കണക്ഷൻ സജ്ജമാക്കൽ
+    function setupConnectionListeners() {
+        conn.on('open', () => {
+            document.getElementById('startSection').style.display = 'none';
+            document.getElementById('pinDisplaySection').style.display = 'none';
+            document.getElementById('transferSection').style.display = 'block';
+            updateStatus("കണക്ഷൻ പൂർത്തിയായി! ഫയൽ തിരഞ്ഞെടുക്കാം.");
+        });
 
-        const chunkSize = 16384; // 16KB ആയി ചുരുക്കി (ഓവർലോഡ് ഒഴിവാക്കാൻ)
+        conn.on('data', handleIncomingData);
+
+        conn.on('close', () => {
+            updateStatus("കണക്ഷൻ വേർപെട്ടു. പേജ് റീഫ്രഷ് ചെയ്യുക.");
+            document.getElementById('transferSection').style.display = 'none';
+        });
+
+        conn.on('error', () => {
+            updateStatus("കണക്ഷനിൽ പിശക് സംഭവിച്ചു!");
+        });
+    }
+
+    // 4. ഫയൽ അയക്കുന്ന പ്രവർത്തനം (Sender)
+    function startSendingFile() {
+        const fileInput = document.getElementById('filePicker');
+        if (fileInput.files.length === 0) {
+            alert("ദയവായി ഒരു ഫയൽ തിരഞ്ഞെടുക്കുക!");
+            return;
+        }
+
+        const file = fileInput.files[0];
+        showProgress(true);
+        updateStatus("ഫയൽ വിവരങ്ങൾ അയക്കുന്നു...");
+
+        // ഫയൽ മേറ്റാഡാറ്റ ആദ്യം അയക്കുന്നു
+        conn.send({
+            type: 'meta',
+            name: file.name,
+            size: file.size,
+            mime: file.type
+        });
+
+        const chunkSize = 16384; // 16 KB പാക്കറ്റുകൾ (കൂടുതൽ സുരക്ഷിതം)
         const reader = new FileReader();
         let offset = 0;
 
-        function readNextChunk() {
-            if (conn.dataChannel && conn.dataChannel.bufferedAmount > 1000000) { 
-                setTimeout(readNextChunk, 100); 
-                return; 
+        function sendChunk() {
+            // ബഫർ കവിയാതിരിക്കാൻ നിയന്ത്രിക്കുന്നു
+            if (conn.dataChannel && conn.dataChannel.bufferedAmount > 1000000) {
+                setTimeout(sendChunk, 50);
+                return;
             }
-            reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
+
+            const slice = file.slice(offset, offset + chunkSize);
+            reader.readAsArrayBuffer(slice);
         }
 
-        reader.onload = e => {
+        reader.onload = (e) => {
             conn.send(e.target.result);
             offset += e.target.result.byteLength;
-            
-            let percent = Math.round((offset / selectedFile.size) * 100);
-            document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}% പൂർത്തിയായി`;
 
-            if (offset < selectedFile.size) { 
-                readNextChunk(); 
-            } else { 
-                document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു! ✅"; 
-                document.getElementById('status').style.color = "#28a745";
+            let percentage = Math.round((offset / file.size) * 100);
+            updateProgress(percentage);
+            document.getElementById('speedText').innerText = `അയക്കുന്നു: ${percentage}%`;
+
+            if (offset < file.size) {
+                sendChunk();
+            } else {
+                updateStatus("ഫയൽ വിജയകരമായി അയച്ചു! ✅");
+                document.getElementById('speedText').innerText = "";
             }
         };
-        
-        setTimeout(readNextChunk, 500); // കണക്ഷൻ സെറ്റ് ആകാൻ ചെറിയൊരു ഇടവേള
+
+        setTimeout(sendChunk, 300); // ചെറുതായി കാത്തിരുന്ന ശേഷം അയക്കുന്നു
     }
 
-    function setupReceiver() {
-        let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
-        conn.on('data', data => {
-            if (typeof data === 'object' && data.type === 'meta') {
-                fileMeta = data; 
-                document.getElementById('progressBar').style.display = 'block';
-                document.getElementById('status').innerText = "ഫയൽ സ്വീകരിക്കുന്നു...";
-                document.getElementById('status').style.color = "#0056b3";
-            } else {
-                receivedBuffers.push(data);
-                receivedSize += data.byteLength;
-                
-                let percent = Math.round((receivedSize / fileMeta.size) * 100);
-                document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}% പൂർത്തിയായി`;
+    // 5. ഫയൽ സ്വീകരിക്കുന്ന പ്രവർത്തനം (Receiver)
+    let incomingMeta = null;
+    let receivedChunks = [];
+    let receivedBytes = 0;
 
-                if (receivedSize >= fileMeta.size) {
-                    const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
-                    const a = document.createElement('a');
-                    a.href = URL.createObjectURL(blob);
-                    a.download = fileMeta.name;
-                    document.body.appendChild(a); 
-                    a.click(); 
-                    document.body.removeChild(a);
-                    
-                    document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി! ✅";
-                    document.getElementById('status').style.color = "#28a745";
-                    receivedBuffers = []; receivedSize = 0;
-                }
+    function handleIncomingData(data) {
+        if (typeof data === 'object' && data.type === 'meta') {
+            incomingMeta = data;
+            receivedChunks = [];
+            receivedBytes = 0;
+            showProgress(true);
+            updateStatus("ഫയൽ സ്വീകരിക്കുന്നു...");
+        } else {
+            receivedChunks.push(data);
+            receivedBytes += data.byteLength;
+
+            let percentage = Math.round((receivedBytes / incomingMeta.size) * 100);
+            updateProgress(percentage);
+            document.getElementById('speedText').innerText = `സ്വീകരിക്കുന്നു: ${percentage}%`;
+
+            if (receivedBytes >= incomingMeta.size) {
+                // പൂർണ്ണമായ ഫയൽ സേവ് ചെയ്യുന്നു
+                const blob = new Blob(receivedChunks, { type: incomingMeta.mime || 'application/octet-stream' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = incomingMeta.name;
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+
+                updateStatus("ഫയൽ സ്വീകരിച്ച് കഴിഞ്ഞു! ✅");
+                document.getElementById('speedText').innerText = "";
+                receivedChunks = [];
+                receivedBytes = 0;
             }
-        });
+        }
+    }
+
+    // ഹെൽപ്പർ ഫങ്ഷനുകൾ
+    function updateStatus(msg) {
+        document.getElementById('status').innerText = msg;
+    }
+
+    function showProgress(show) {
+        document.getElementById('progressContainer').style.display = show ? 'block' : 'none';
+        if (!show) updateProgress(0);
+    }
+
+    function updateProgress(percent) {
+        document.getElementById('progressBar').style.width = percent + '%';
     }
 </script>
+
 </body>
 </html>

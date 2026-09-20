@@ -10,14 +10,14 @@
         .container { background: white; max-width: 450px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h2 { color: #007bff; margin-bottom: 5px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        input[type="text"] { padding: 10px; width: 60%; font-size: 18px; text-align: center; letter-spacing: 2px; font-weight: bold; border: 2px solid #ccc; border-radius: 6px; }
+        input[type="text"] { padding: 10px; width: 60%; font-size: 18px; text-align: center; letter-spacing: 2px; font-weight: bold; border: 2px solid #ccc; border-radius: 6px; margin-bottom: 10px;}
         input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 12px; }
-        .btn { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; font-size: 16px; }
+        .btn { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 5px; width: 100%; font-size: 16px; }
         .btn:hover { background: #218838; }
         .btn-blue { background: #007bff; }
         .btn-blue:hover { background: #0069d9; }
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; height: 16px; margin-top: 10px; display: none; }
-        .progress-fill { width: 0%; height: 100%; background: #28a745; }
+        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
         #status { font-weight: bold; color: #d9534f; margin-top: 10px; }
         .pin-box { font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 5px; margin: 10px 0; }
     </style>
@@ -26,21 +26,21 @@
 
 <div class="container">
     <h2>KUMBIDI SHARE</h2>
-    <p style="color: #666; font-size: 14px;">ഒരേ നെറ്റ്‌വർക്കിൽ വേഗത്തിൽ ഫയൽ അയക്കാം</p>
+    <p style="color: #666; font-size: 14px;">അതിവേഗ ഫയൽ ട്രാൻസ്ഫർ</p>
 
     <!-- സജ്ജീകരണങ്ങൾ -->
     <div class="card" id="setupSection">
         <h3>നിങ്ങൾക്ക് എന്താണ് ചെയ്യേണ്ടത്?</h3>
-        <button class="btn btn-blue" onclick="createRoom()">ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാകുക (Receive)</button>
+        <button class="btn btn-blue" onclick="createRoom()">ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാകുക</button>
         <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
         <h3>അല്ലെങ്കിൽ ഫയൽ അയക്കാൻ:</h3>
         <input type="text" id="joinPin" placeholder="PIN അടിക്കുക" maxlength="4">
-        <button class="btn" onclick="joinRoom()">കണക്റ്റ് ചെയ്യുക (Send)</button>
+        <button class="btn" onclick="joinRoom()">കണക്റ്റ് ചെയ്യുക</button>
     </div>
 
     <!-- റൂം വിവരങ്ങൾ -->
     <div class="card" id="roomSection" style="display:none;">
-        <h3>നിങ്ങളുടെ സീക്രട്ട് PIN:</h3>
+        <h3>നിങ്ങളുടെ PIN:</h3>
         <div class="pin-box" id="myPinDisplay">----</div>
         <p style="font-size: 13px; color: #555;">ഫയൽ അയക്കേണ്ട ആളോട് ഈ PIN അടിക്കാൻ പറയുക.</p>
     </div>
@@ -54,7 +54,7 @@
 
     <!-- സ്റ്റാറ്റസ് -->
     <div class="card">
-        <p id="status">ഡിവൈസുകൾ കണക്റ്റ് ചെയ്യാൻ കാത്തിരിക്കുന്നു...</p>
+        <p id="status">കണക്റ്റ് ചെയ്യാൻ കാത്തിരിക്കുന്നു...</p>
         <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
         <p id="speedInfo" style="font-size: 13px; margin-top: 5px;"></p>
     </div>
@@ -74,7 +74,7 @@
 
     // ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാകുന്നു (Receiver)
     function createRoom() {
-        let pin = Math.floor(1000 + Math.random() * 9000); // 4-അക്ക പിൻ
+        let pin = Math.floor(1000 + Math.random() * 9000);
         let myId = prefix + pin;
         
         peer = new Peer(myId, peerOptions);
@@ -86,12 +86,15 @@
             document.getElementById('status').innerText = "മറ്റേ ഡിവൈസ് കണക്റ്റ് ആകാൻ കാത്തിരിക്കുന്നു...";
         });
 
+        // റിസീവറുടെ കണക്ഷൻ പൂർണ്ണമാകുന്നു
         peer.on('connection', (connection) => {
             conn = connection;
-            document.getElementById('roomSection').style.display = 'none';
-            document.getElementById('transferSection').style.display = 'block';
-            document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാണ്.";
-            setupReceiver();
+            conn.on('open', () => { // ഈ ഭാഗം കണക്ഷൻ ഉറപ്പാക്കാൻ വളരെ പ്രധാനമാണ്
+                document.getElementById('roomSection').style.display = 'none';
+                document.getElementById('transferSection').style.display = 'block';
+                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാണ്.";
+                setupReceiver();
+            });
         });
     }
 
@@ -123,23 +126,39 @@
         selectedFile = fileInput.files[0];
         document.getElementById('progressBar').style.display = 'block';
         
+        // ഫയൽ വിവരങ്ങൾ ആദ്യം അയക്കുന്നു
         conn.send({ type: 'meta', name: selectedFile.name, size: selectedFile.size, fileType: selectedFile.type });
 
-        const chunkSize = 16384;
+        const chunkSize = 65536; // 64KB ആക്കി മാറ്റി (സ്പീഡ് കൂടാൻ)
         const reader = new FileReader();
         let offset = 0;
+
+        function readNextChunk() {
+            // ബഫർ ഓവർഫ്ലോ ഉണ്ടാകാതിരിക്കാൻ ഡാറ്റ കൺട്രോൾ ചെയ്യുന്നു (ട്രാഫിക് ബ്ലോക്ക് ഒഴിവാക്കാൻ)
+            if (conn.dataChannel && conn.dataChannel.bufferedAmount > 2000000) { 
+                setTimeout(readNextChunk, 50); 
+                return; 
+            }
+            reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
+        }
 
         reader.onload = e => {
             conn.send(e.target.result);
             offset += e.target.result.byteLength;
+            
             let percent = Math.round((offset / selectedFile.size) * 100);
             document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}%`;
+            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}% പൂർത്തിയായി`;
 
-            if (offset < selectedFile.size) { reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize)); } 
-            else { document.getElementById('status').innerText = "ഫയൽ അയച്ചു തീർന്നു! ✅"; }
+            if (offset < selectedFile.size) { 
+                readNextChunk(); 
+            } else { 
+                document.getElementById('status').innerText = "ഫയൽ അയച്ചു തീർന്നു! ✅"; 
+            }
         };
-        reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
+        
+        // ഫയൽ അയക്കാൻ തുടങ്ങുന്നു
+        readNextChunk();
     }
 
     // ഫയൽ സ്വീകരിക്കുന്ന ഫങ്ഷൻ
@@ -147,22 +166,27 @@
         let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
         conn.on('data', data => {
             if (typeof data === 'object' && data.type === 'meta') {
-                fileMeta = data; document.getElementById('progressBar').style.display = 'block';
+                fileMeta = data; 
+                document.getElementById('progressBar').style.display = 'block';
             } else {
                 receivedBuffers.push(data);
                 receivedSize += data.byteLength;
+                
                 let percent = Math.round((receivedSize / fileMeta.size) * 100);
                 document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}%`;
+                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}% പൂർത്തിയായി`;
 
                 if (receivedSize >= fileMeta.size) {
                     const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
                     const a = document.createElement('a');
                     a.href = URL.createObjectURL(blob);
                     a.download = fileMeta.name;
-                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
+                    document.body.appendChild(a); 
+                    a.click(); 
+                    document.body.removeChild(a);
+                    
                     document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി! ✅";
-                    receivedBuffers = []; receivedSize = 0; // അടുത്ത ഫയലിനായി റീസെറ്റ് ചെയ്യുന്നു
+                    receivedBuffers = []; receivedSize = 0; // അടുത്ത ഫയലിനായി തയ്യാറാക്കുന്നു
                 }
             }
         });

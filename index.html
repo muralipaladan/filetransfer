@@ -2,234 +2,167 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI P2P Radar & Share</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Kumbidi Local Share</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
-        .container { background: white; max-width: 500px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); text-align: left; }
-        h2 { text-align: center; color: #007bff; margin-bottom: 5px; }
-        p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
-        
-        /* Radar Animation */
-        .radar-box { text-align: center; padding: 20px; background: #e8f4fd; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #007bff; }
-        .pulse { width: 20px; height: 20px; background: #d9534f; border-radius: 50%; margin: 0 auto 10px; box-shadow: 0 0 0 rgba(217, 83, 79, 0.4); animation: pulse 1.2s infinite; }
-        @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 79, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(217, 83, 79, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 79, 0); }
-        }
-
-        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 15px; }
+        body { font-family: Arial, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 20px; color: #333; }
+        .container { background: white; max-width: 450px; margin: auto; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h2 { color: #007bff; margin-bottom: 5px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
-        
-        /* Progress Bar */
-        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; display: none; }
-        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
-        
-        #status { font-weight: bold; color: #007bff; font-size: 14px; text-align: center; margin-top: 10px; }
-        .device-btn { background: #28a745; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px; cursor: pointer; font-weight: bold; }
-        .device-btn:hover { background: #218838; }
+        input[type="text"] { padding: 10px; width: 60%; font-size: 18px; text-align: center; letter-spacing: 2px; font-weight: bold; border: 2px solid #ccc; border-radius: 6px; }
+        input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; margin-bottom: 12px; }
+        .btn { background: #28a745; color: white; border: none; padding: 12px 20px; border-radius: 6px; cursor: pointer; font-weight: bold; margin-top: 10px; width: 100%; font-size: 16px; }
+        .btn:hover { background: #218838; }
+        .btn-blue { background: #007bff; }
+        .btn-blue:hover { background: #0069d9; }
+        .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; height: 16px; margin-top: 10px; display: none; }
+        .progress-fill { width: 0%; height: 100%; background: #28a745; }
+        #status { font-weight: bold; color: #d9534f; margin-top: 10px; }
+        .pin-box { font-size: 32px; font-weight: bold; color: #28a745; letter-spacing: 5px; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
-    <h2>KUMBIDI Radar Share</h2>
-    <p class="sub">അടുത്തുള്ള ഡിവൈസിലേക്ക് നേരിട്ട് ഫയൽ അയക്കാം</p>
+    <h2>KUMBIDI SHARE</h2>
+    <p style="color: #666; font-size: 14px;">ഒരേ നെറ്റ്‌വർക്കിൽ വേഗത്തിൽ ഫയൽ അയക്കാം</p>
 
-    <!-- STEP 1: SELECT FILE -->
-    <div class="card">
-        <h3>1. അയക്കേണ്ട ഫയൽ തിരഞ്ഞെടുക്കുക:</h3>
+    <!-- സജ്ജീകരണങ്ങൾ -->
+    <div class="card" id="setupSection">
+        <h3>നിങ്ങൾക്ക് എന്താണ് ചെയ്യേണ്ടത്?</h3>
+        <button class="btn btn-blue" onclick="createRoom()">ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാകുക (Receive)</button>
+        <hr style="margin: 20px 0; border: 0; border-top: 1px solid #ddd;">
+        <h3>അല്ലെങ്കിൽ ഫയൽ അയക്കാൻ:</h3>
+        <input type="text" id="joinPin" placeholder="PIN അടിക്കുക" maxlength="4">
+        <button class="btn" onclick="joinRoom()">കണക്റ്റ് ചെയ്യുക (Send)</button>
+    </div>
+
+    <!-- റൂം വിവരങ്ങൾ -->
+    <div class="card" id="roomSection" style="display:none;">
+        <h3>നിങ്ങളുടെ സീക്രട്ട് PIN:</h3>
+        <div class="pin-box" id="myPinDisplay">----</div>
+        <p style="font-size: 13px; color: #555;">ഫയൽ അയക്കേണ്ട ആളോട് ഈ PIN അടിക്കാൻ പറയുക.</p>
+    </div>
+
+    <!-- ഫയൽ സെൻഡിങ് ഏരിയ -->
+    <div class="card" id="transferSection" style="display:none;">
+        <h3 style="color: #28a745;">ഡിവൈസുകൾ കണക്റ്റ് ആയി! ✅</h3>
         <input type="file" id="fileInput">
+        <button class="btn" onclick="sendFile()">ഫയൽ അയക്കുക</button>
     </div>
 
-    <!-- RADAR PRESENCE SECTION -->
-    <div class="radar-box">
-        <div class="pulse"></div>
-        <div id="myPresenceStatus" style="font-size: 14px; font-weight: bold; color: #007bff;">റേഡാർ സജീവമാണ്...</div>
-        <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">മറ്റൊരു ഡിവൈസ് കണക്റ്റ് ആകുന്നത് വരെ തിരയുന്നു</p>
-    </div>
-
-    <!-- DETECTED DEVICES LIST -->
-    <div class="card" id="deviceListCard" style="display:none;">
-        <h3>കണ്ടെത്തിയ ഡിവൈസുകൾ:</h3>
-        <div id="detectedDevices"></div>
-    </div>
-
-    <!-- STATUS & PROGRESS -->
+    <!-- സ്റ്റാറ്റസ് -->
     <div class="card">
-        <h3>സ്റ്റാറ്റസ്</h3>
-        <p id="status">ഫയൽ തിരഞ്ഞെടുത്ത് കാത്തിരിക്കൂ...</p>
-        <div class="progress-bar" id="progressBar">
-            <div class="progress-fill" id="progressFill"></div>
-        </div>
-        <p id="speedInfo" style="font-size: 12px; color: #666; margin-top: 5px; text-align: center;"></p>
+        <p id="status">ഡിവൈസുകൾ കണക്റ്റ് ചെയ്യാൻ കാത്തിരിക്കുന്നു...</p>
+        <div class="progress-bar" id="progressBar"><div class="progress-fill" id="progressFill"></div></div>
+        <p id="speedInfo" style="font-size: 13px; margin-top: 5px;"></p>
     </div>
 </div>
 
 <script>
-    let peer, selectedFile, myId;
-    const groupKey = "kumbidi-room-2026-";
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000); 
-    myId = groupKey + randomSuffix;
+    let peer, conn, selectedFile;
+    const prefix = "kumbidi-local-";
 
     const peerOptions = {
         config: {
             'iceServers': [
-                { urls: 'stun:stun.l.google.com:19302' },
-                { urls: 'stun:stun1.l.google.com:19302' }
+                { urls: 'stun:stun.l.google.com:19302' }
             ]
         }
     };
 
-    let searchInterval;
-
-    window.onload = function() {
+    // ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാകുന്നു (Receiver)
+    function createRoom() {
+        let pin = Math.floor(1000 + Math.random() * 9000); // 4-അക്ക പിൻ
+        let myId = prefix + pin;
+        
         peer = new Peer(myId, peerOptions);
-
+        
         peer.on('open', (id) => {
-            document.getElementById('myPresenceStatus').innerText = "നിങ്ങളുടെ സിഗ്നൽ: " + id;
-            document.getElementById('status').innerText = "അടുത്തുള്ള ഡിവൈസിനായി തിരയുന്നു...";
-            
-            // നിരന്തരമായ സ്കാനിങ് തുടങ്ങുന്നു
-            startContinuousScanning();
+            document.getElementById('setupSection').style.display = 'none';
+            document.getElementById('roomSection').style.display = 'block';
+            document.getElementById('myPinDisplay').innerText = pin;
+            document.getElementById('status').innerText = "മറ്റേ ഡിവൈസ് കണക്റ്റ് ആകാൻ കാത്തിരിക്കുന്നു...";
         });
 
-        // മറ്റാരെങ്കിലും ഫയൽ അയക്കാൻ വരുമ്പോൾ (Receiver Mode)
         peer.on('connection', (connection) => {
-            document.getElementById('status').innerText = "മറ്റൊരു ഡിവൈസ് കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കുന്നു...";
-            clearInterval(searchInterval); 
-            setupReceiver(connection);
+            conn = connection;
+            document.getElementById('roomSection').style.display = 'none';
+            document.getElementById('transferSection').style.display = 'block';
+            document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കാൻ തയ്യാറാണ്.";
+            setupReceiver();
         });
-
-        peer.on('error', (err) => {
-            console.log("Peer error: " + err.type);
-        });
-    };
-
-    function startContinuousScanning() {
-        document.getElementById('deviceListCard').style.display = 'block';
-        let container = document.getElementById('detectedDevices');
-        let currentTry = 1000;
-
-        searchInterval = setInterval(() => {
-            if(currentTry > 9999) currentTry = 1000; 
-            let targetId = groupKey + currentTry;
-
-            if(targetId !== myId) {
-                let tempPeer = new Peer();
-                tempPeer.on('open', () => {
-                    let conn = tempPeer.connect(targetId);
-                    conn.on('open', () => {
-                        // ഡിവൈസ് കണ്ടുപിടിച്ചാൽ കാണിക്കാൻ
-                        container.innerHTML = `
-                            <div style="background:#fff; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px;">
-                                <span style="font-size:13px; font-weight:bold; color:#28a745;">✨ ഡിവൈസ് കണ്ടെത്തി!</span>
-                                <button class="device-btn" onclick="connectAndSend('${targetId}')">ഫയൽ അങ്ങോട്ട് അയക്കൂ</button>
-                            </div>
-                        `;
-                        document.getElementById('status').innerText = "അടുത്തുള്ള ഡിവൈസ് സാന്നിധ്യം തിരിച്ചറിഞ്ഞു!";
-                        tempPeer.destroy();
-                    });
-                    setTimeout(() => { tempPeer.destroy(); }, 800);
-                });
-            }
-            currentTry++;
-        }, 1500);
     }
 
-    // സെൻഡർ മോഡ്: ഫയൽ അയക്കാൻ തുടങ്ങുന്നു
-    function connectAndSend(targetId) {
-        const fileInput = document.getElementById('fileInput');
-        if (fileInput.files.length === 0) {
-            alert("ദയവായി ആദ്യം ഫയൽ തിരഞ്ഞെടുക്കുക!");
-            return;
-        }
-        selectedFile = fileInput.files[0];
-        document.getElementById('status').innerText = `കണക്റ്റ് ചെയ്യുന്നു...`;
-        clearInterval(searchInterval);
-
-        let senderPeer = new Peer(peerOptions);
-        senderPeer.on('open', () => {
-            let conn = senderPeer.connect(targetId);
-            
+    // ഫയൽ അയക്കാൻ കണക്റ്റ് ചെയ്യുന്നു (Sender)
+    function joinRoom() {
+        let pin = document.getElementById('joinPin').value;
+        if(pin.length !== 4) { alert("ശരിയായ 4-അക്ക PIN അടിക്കുക!"); return; }
+        
+        document.getElementById('status').innerText = "കണക്റ്റ് ചെയ്യുന്നു...";
+        peer = new Peer(peerOptions);
+        
+        peer.on('open', () => {
+            conn = peer.connect(prefix + pin);
             conn.on('open', () => {
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ അയക്കുന്നു...";
-                sendFileData(conn);
+                document.getElementById('setupSection').style.display = 'none';
+                document.getElementById('transferSection').style.display = 'block';
+                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ തിരഞ്ഞെടുത്ത് അയക്കുക.";
+                setupReceiver();
             });
+            conn.on('error', () => alert("കണക്ഷൻ പരാജയപ്പെട്ടു. PIN ശരിയാണോ എന്ന് നോക്കുക."));
         });
     }
 
-    function sendFileData(conn) {
+    // ഫയൽ അയക്കുന്ന ഫങ്ഷൻ
+    function sendFile() {
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput.files.length === 0) { alert("ഫയൽ തിരഞ്ഞെടുക്കുക!"); return; }
+        
+        selectedFile = fileInput.files[0];
         document.getElementById('progressBar').style.display = 'block';
         
-        // ഫയലിന്റെ വിവരങ്ങൾ ആദ്യം അയക്കുന്നു
-        conn.send({
-            type: 'meta',
-            name: selectedFile.name,
-            size: selectedFile.size,
-            fileType: selectedFile.type
-        });
+        conn.send({ type: 'meta', name: selectedFile.name, size: selectedFile.size, fileType: selectedFile.type });
 
-        const chunkSize = 16384; // 16KB chunks
+        const chunkSize = 16384;
         const reader = new FileReader();
         let offset = 0;
 
         reader.onload = e => {
             conn.send(e.target.result);
             offset += e.target.result.byteLength;
-            
-            // ശതമാനം കണക്കാക്കുന്നു
             let percent = Math.round((offset / selectedFile.size) * 100);
             document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}% പൂർത്തിയായി`;
+            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}%`;
 
-            if (offset < selectedFile.size) {
-                readNextChunk();
-            } else {
-                document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു! ✅";
-            }
+            if (offset < selectedFile.size) { reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize)); } 
+            else { document.getElementById('status').innerText = "ഫയൽ അയച്ചു തീർന്നു! ✅"; }
         };
-
-        function readNextChunk() {
-            reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
-        }
-
-        readNextChunk();
+        reader.readAsArrayBuffer(selectedFile.slice(offset, offset + chunkSize));
     }
 
-    // റിസീവർ മോഡ്: ഫയൽ സ്വീകരിക്കുന്നു
-    function setupReceiver(conn) {
-        document.getElementById('progressBar').style.display = 'block';
+    // ഫയൽ സ്വീകരിക്കുന്ന ഫങ്ഷൻ
+    function setupReceiver() {
         let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
-
         conn.on('data', data => {
             if (typeof data === 'object' && data.type === 'meta') {
-                fileMeta = data; // ഫയലിന്റെ പേരും സൈസും സ്വീകരിക്കുന്നു
+                fileMeta = data; document.getElementById('progressBar').style.display = 'block';
             } else {
                 receivedBuffers.push(data);
                 receivedSize += data.byteLength;
-                
-                // ശതമാനം കണക്കാക്കുന്നു
                 let percent = Math.round((receivedSize / fileMeta.size) * 100);
                 document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}% പൂർത്തിയായി`;
+                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}%`;
 
-                // പൂർണ്ണമായും ലഭിച്ചു കഴിഞ്ഞാൽ ഡൗൺലോഡ് ചെയ്യുന്നു
                 if (receivedSize >= fileMeta.size) {
-                    document.getElementById('status').innerText = "ഫയൽ ലഭിച്ചു! സേവ് ചെയ്യുന്നു... 📥";
-                    
                     const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
-                    const url = URL.createObjectURL(blob);
-                    
                     const a = document.createElement('a');
-                    a.href = url;
+                    a.href = URL.createObjectURL(blob);
                     a.download = fileMeta.name;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    
+                    document.body.appendChild(a); a.click(); document.body.removeChild(a);
                     document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി! ✅";
+                    receivedBuffers = []; receivedSize = 0; // അടുത്ത ഫയലിനായി റീസെറ്റ് ചെയ്യുന്നു
                 }
             }
         });

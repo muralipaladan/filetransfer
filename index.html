@@ -2,7 +2,7 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI Continuous Radar</title>
+    <title>KUMBIDI P2P Radar & Share</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
@@ -10,6 +10,7 @@
         h2 { text-align: center; color: #007bff; margin-bottom: 5px; }
         p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
         
+        /* Radar Animation */
         .radar-box { text-align: center; padding: 20px; background: #e8f4fd; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #007bff; }
         .pulse { width: 20px; height: 20px; background: #d9534f; border-radius: 50%; margin: 0 auto 10px; box-shadow: 0 0 0 rgba(217, 83, 79, 0.4); animation: pulse 1.2s infinite; }
         @keyframes pulse {
@@ -20,8 +21,11 @@
 
         input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 15px; }
         .card { background: #f8f9fa; border: 1px solid #e9ecef; padding: 15px; border-radius: 8px; margin-bottom: 15px; }
+        
+        /* Progress Bar */
         .progress-bar { width: 100%; background: #e0e0e0; border-radius: 5px; overflow: hidden; height: 16px; margin-top: 10px; display: none; }
-        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.05s ease; }
+        .progress-fill { width: 0%; height: 100%; background: #28a745; transition: width 0.1s ease; }
+        
         #status { font-weight: bold; color: #007bff; font-size: 14px; text-align: center; margin-top: 10px; }
         .device-btn { background: #28a745; color: white; border: none; padding: 10px; width: 100%; border-radius: 6px; margin-top: 8px; cursor: pointer; font-weight: bold; }
         .device-btn:hover { background: #218838; }
@@ -30,8 +34,8 @@
 <body>
 
 <div class="container">
-    <h2>KUMBIDI Radar</h2>
-    <p class="sub">അടുത്തുള്ള ഡിവൈസ് കണ്ടുപിടിക്കുന്നത് വരെ പരതുന്നു</p>
+    <h2>KUMBIDI Radar Share</h2>
+    <p class="sub">അടുത്തുള്ള ഡിവൈസിലേക്ക് നേരിട്ട് ഫയൽ അയക്കാം</p>
 
     <!-- STEP 1: SELECT FILE -->
     <div class="card">
@@ -43,7 +47,7 @@
     <div class="radar-box">
         <div class="pulse"></div>
         <div id="myPresenceStatus" style="font-size: 14px; font-weight: bold; color: #007bff;">റേഡാർ സജീവമാണ്...</div>
-        <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">മറ്റൊരു ഡിവൈസ് സിഗ്നൽ തരുന്നതുവരെ തിരയുന്നു</p>
+        <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">മറ്റൊരു ഡിവൈസ് കണക്റ്റ് ആകുന്നത് വരെ തിരയുന്നു</p>
     </div>
 
     <!-- DETECTED DEVICES LIST -->
@@ -52,7 +56,7 @@
         <div id="detectedDevices"></div>
     </div>
 
-    <!-- STATUS -->
+    <!-- STATUS & PROGRESS -->
     <div class="card">
         <h3>സ്റ്റാറ്റസ്</h3>
         <p id="status">ഫയൽ തിരഞ്ഞെടുത്ത് കാത്തിരിക്കൂ...</p>
@@ -66,7 +70,7 @@
 <script>
     let peer, selectedFile, myId;
     const groupKey = "kumbidi-room-2026-";
-    const randomSuffix = Math.floor(1000 + Math.random() * 9000); // കൂടുതൽ നമ്പറുകൾ (1000 മുതൽ 9999 വരെ)
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000); 
     myId = groupKey + randomSuffix;
 
     const peerOptions = {
@@ -84,16 +88,17 @@
         peer = new Peer(myId, peerOptions);
 
         peer.on('open', (id) => {
-            document.getElementById('myPresenceStatus').innerText = "നിങ്ങളുടെ ഐഡി: " + id;
-            document.getElementById('status').innerText = "റേഡാർ ഓൺ ആണ്. അടുത്തുള്ള ഡിവൈസിനായി തിരയുന്നു...";
+            document.getElementById('myPresenceStatus').innerText = "നിങ്ങളുടെ സിഗ്നൽ: " + id;
+            document.getElementById('status').innerText = "അടുത്തുള്ള ഡിവൈസിനായി തിരയുന്നു...";
             
-            // ഡിവൈസ് കിട്ടുന്നത് വരെ തുടർച്ചയായി പരതുന്നു
+            // നിരന്തരമായ സ്കാനിങ് തുടങ്ങുന്നു
             startContinuousScanning();
         });
 
+        // മറ്റാരെങ്കിലും ഫയൽ അയക്കാൻ വരുമ്പോൾ (Receiver Mode)
         peer.on('connection', (connection) => {
-            document.getElementById('status').innerText = "മറ്റൊരു ഡിവൈസ് നിങ്ങളുമായി ബന്ധപ്പെട്ടു! ഫയൽ സ്വീകരിക്കുന്നു...";
-            clearInterval(searchInterval); // ഡിവൈസ് കിട്ടിയാൽ തിരച്ചിൽ നിർത്തുന്നു
+            document.getElementById('status').innerText = "മറ്റൊരു ഡിവൈസ് കണക്റ്റ് ആയി! ഫയൽ സ്വീകരിക്കുന്നു...";
+            clearInterval(searchInterval); 
             setupReceiver(connection);
         });
 
@@ -107,9 +112,8 @@
         let container = document.getElementById('detectedDevices');
         let currentTry = 1000;
 
-        // ഓരോ 1.5 സെക്കൻഡിലും അടുത്തടുത്തുള്ള ഐഡികൾ തുടർച്ചയായി പരിശോധിച്ചുകൊണ്ടിരിക്കും
         searchInterval = setInterval(() => {
-            if(currentTry > 9999) currentTry = 1000; // ലൂപ്പ് റീസെറ്റ് ചെയ്യുന്നു
+            if(currentTry > 9999) currentTry = 1000; 
             let targetId = groupKey + currentTry;
 
             if(targetId !== myId) {
@@ -117,32 +121,32 @@
                 tempPeer.on('open', () => {
                     let conn = tempPeer.connect(targetId);
                     conn.on('open', () => {
+                        // ഡിവൈസ് കണ്ടുപിടിച്ചാൽ കാണിക്കാൻ
                         container.innerHTML = `
                             <div style="background:#fff; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px;">
-                                <span style="font-size:13px; font-weight:bold; color:#28a745;">✨ ഡിവൈസ് കണ്ടെത്തി! (${targetId})</span>
-                                <button class="device-btn" onclick="connectAndSend('${targetId}')">ഫയൽ ഇങ്ങോട്ട് അയക്കൂ</button>
+                                <span style="font-size:13px; font-weight:bold; color:#28a745;">✨ ഡിവൈസ് കണ്ടെത്തി!</span>
+                                <button class="device-btn" onclick="connectAndSend('${targetId}')">ഫയൽ അങ്ങോട്ട് അയക്കൂ</button>
                             </div>
                         `;
                         document.getElementById('status').innerText = "അടുത്തുള്ള ഡിവൈസ് സാന്നിധ്യം തിരിച്ചറിഞ്ഞു!";
                         tempPeer.destroy();
                     });
-                    setTimeout(() => {
-                        tempPeer.destroy();
-                    }, 800);
+                    setTimeout(() => { tempPeer.destroy(); }, 800);
                 });
             }
             currentTry++;
         }, 1500);
     }
 
+    // സെൻഡർ മോഡ്: ഫയൽ അയക്കാൻ തുടങ്ങുന്നു
     function connectAndSend(targetId) {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) {
-            alert("ദയവായി ആദ്യം മുകളിൽ നിന്ന് അയക്കേണ്ട ഫയൽ തിരഞ്ഞെടുക്കുക!");
+            alert("ദയവായി ആദ്യം ഫയൽ തിരഞ്ഞെടുക്കുക!");
             return;
         }
         selectedFile = fileInput.files[0];
-        document.getElementById('status').innerText = `${targetId} -ലേക്ക് കണക്റ്റ് ചെയ്യുന്നു...`;
+        document.getElementById('status').innerText = `കണക്റ്റ് ചെയ്യുന്നു...`;
         clearInterval(searchInterval);
 
         let senderPeer = new Peer(peerOptions);
@@ -150,7 +154,7 @@
             let conn = senderPeer.connect(targetId);
             
             conn.on('open', () => {
-                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ കൈമാറ്റം തുടങ്ങുന്നു...";
+                document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ അയക്കുന്നു...";
                 sendFileData(conn);
             });
         });
@@ -159,6 +163,7 @@
     function sendFileData(conn) {
         document.getElementById('progressBar').style.display = 'block';
         
+        // ഫയലിന്റെ വിവരങ്ങൾ ആദ്യം അയക്കുന്നു
         conn.send({
             type: 'meta',
             name: selectedFile.name,
@@ -166,21 +171,23 @@
             fileType: selectedFile.type
         });
 
-        const chunkSize = 16384;
+        const chunkSize = 16384; // 16KB chunks
         const reader = new FileReader();
         let offset = 0;
 
         reader.onload = e => {
             conn.send(e.target.result);
             offset += e.target.result.byteLength;
+            
+            // ശതമാനം കണക്കാക്കുന്നു
             let percent = Math.round((offset / selectedFile.size) * 100);
             document.getElementById('progressFill').style.width = percent + '%';
-            document.getElementById('speedInfo').innerText = `പുരോഗതി: ${percent}%`;
+            document.getElementById('speedInfo').innerText = `അയക്കുന്നു: ${percent}% പൂർത്തിയായി`;
 
             if (offset < selectedFile.size) {
                 readNextChunk();
             } else {
-                document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു!";
+                document.getElementById('status').innerText = "ഫയൽ വിജയകരമായി അയച്ചു തീർന്നു! ✅";
             }
         };
 
@@ -191,22 +198,26 @@
         readNextChunk();
     }
 
+    // റിസീവർ മോഡ്: ഫയൽ സ്വീകരിക്കുന്നു
     function setupReceiver(conn) {
         document.getElementById('progressBar').style.display = 'block';
         let fileMeta = {}, receivedBuffers = [], receivedSize = 0;
 
         conn.on('data', data => {
             if (typeof data === 'object' && data.type === 'meta') {
-                fileMeta = data;
+                fileMeta = data; // ഫയലിന്റെ പേരും സൈസും സ്വീകരിക്കുന്നു
             } else {
                 receivedBuffers.push(data);
                 receivedSize += data.byteLength;
+                
+                // ശതമാനം കണക്കാക്കുന്നു
                 let percent = Math.round((receivedSize / fileMeta.size) * 100);
                 document.getElementById('progressFill').style.width = percent + '%';
-                document.getElementById('speedInfo').innerText = `പുരോഗതി: ${percent}%`;
+                document.getElementById('speedInfo').innerText = `സ്വീകരിക്കുന്നു: ${percent}% പൂർത്തിയായി`;
 
+                // പൂർണ്ണമായും ലഭിച്ചു കഴിഞ്ഞാൽ ഡൗൺലോഡ് ചെയ്യുന്നു
                 if (receivedSize >= fileMeta.size) {
-                    document.getElementById('status').innerText = "ഫയൽ ഡൗൺലോഡ് തയ്യാറാക്കുന്നു...";
+                    document.getElementById('status').innerText = "ഫയൽ ലഭിച്ചു! സേവ് ചെയ്യുന്നു... 📥";
                     
                     const blob = new Blob(receivedBuffers, { type: fileMeta.fileType });
                     const url = URL.createObjectURL(blob);
@@ -218,7 +229,7 @@
                     a.click();
                     document.body.removeChild(a);
                     
-                    document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി!";
+                    document.getElementById('status').innerText = "ഡൗൺലോഡ് പൂർത്തിയായി! ✅";
                 }
             }
         });

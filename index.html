@@ -2,7 +2,7 @@
 <html lang="ml">
 <head>
     <meta charset="UTF-8">
-    <title>KUMBIDI P2P Radar Share</title>
+    <title>KUMBIDI Continuous Radar</title>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
         body { font-family: Arial, sans-serif; text-align: center; margin: 0; padding: 20px; background: #f0f2f5; color: #333; }
@@ -10,13 +10,12 @@
         h2 { text-align: center; color: #007bff; margin-bottom: 5px; }
         p.sub { text-align: center; font-size: 13px; color: #666; margin-bottom: 20px; }
         
-        /* Radar Animation */
         .radar-box { text-align: center; padding: 20px; background: #e8f4fd; border-radius: 10px; margin-bottom: 15px; border: 1px dashed #007bff; }
-        .pulse { width: 20px; height: 20px; background: #28a745; border-radius: 50%; margin: 0 auto 10px; box-shadow: 0 0 0 rgba(40, 167, 69, 0.4); animation: pulse 1.5s infinite; }
+        .pulse { width: 20px; height: 20px; background: #d9534f; border-radius: 50%; margin: 0 auto 10px; box-shadow: 0 0 0 rgba(217, 83, 79, 0.4); animation: pulse 1.2s infinite; }
         @keyframes pulse {
-            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0.7); }
-            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(40, 167, 69, 0); }
-            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(40, 167, 69, 0); }
+            0% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 79, 0.7); }
+            70% { transform: scale(1); box-shadow: 0 0 0 15px rgba(217, 83, 79, 0); }
+            100% { transform: scale(0.95); box-shadow: 0 0 0 0 rgba(217, 83, 79, 0); }
         }
 
         input[type="file"] { border: 1px solid #ccc; padding: 10px; border-radius: 6px; width: 100%; box-sizing: border-box; background: #fafafa; margin-bottom: 12px; font-size: 15px; }
@@ -32,7 +31,7 @@
 
 <div class="container">
     <h2>KUMBIDI Radar</h2>
-    <p class="sub">സമീപത്തുള്ള ഡിവൈസുകൾ പരസ്പരം തിരിച്ചറിയുന്നു</p>
+    <p class="sub">അടുത്തുള്ള ഡിവൈസ് കണ്ടുപിടിക്കുന്നത് വരെ പരതുന്നു</p>
 
     <!-- STEP 1: SELECT FILE -->
     <div class="card">
@@ -43,8 +42,8 @@
     <!-- RADAR PRESENCE SECTION -->
     <div class="radar-box">
         <div class="pulse"></div>
-        <div id="myPresenceStatus" style="font-size: 14px; font-weight: bold; color: #007bff;">സാന്നിധ്യം തിരയുന്നു...</div>
-        <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">അടുത്തുള്ള റൂമിലെ/ഡിവൈസിലെ സിഗ്നൽ ഇവിടെ കാണാം</p>
+        <div id="myPresenceStatus" style="font-size: 14px; font-weight: bold; color: #007bff;">റേഡാർ സജീവമാണ്...</div>
+        <p style="font-size: 12px; color: #555; margin: 5px 0 0 0;">മറ്റൊരു ഡിവൈസ് സിഗ്നൽ തരുന്നതുവരെ തിരയുന്നു</p>
     </div>
 
     <!-- DETECTED DEVICES LIST -->
@@ -66,9 +65,8 @@
 
 <script>
     let peer, selectedFile, myId;
-    // ഒരേ വൈഫൈ/റൂമിൽ ഉള്ളവർക്ക് കണക്റ്റ് ചെയ്യാൻ പൊതുവായ ഒരു ഗ്രൂപ്പ് പ്രിഫിക്സ്
     const groupKey = "kumbidi-room-2026-";
-    const randomSuffix = Math.floor(100 + Math.random() * 900);
+    const randomSuffix = Math.floor(1000 + Math.random() * 9000); // കൂടുതൽ നമ്പറുകൾ (1000 മുതൽ 9999 വരെ)
     myId = groupKey + randomSuffix;
 
     const peerOptions = {
@@ -80,21 +78,22 @@
         }
     };
 
-    // ആപ്പ് ഓപ്പൺ ആകുമ്പോൾ തന്നെ സ്വന്തം സാന്നിധ്യം (Presence) സൈബർ സ്പേസിൽ രജിസ്റ്റർ ചെയ്യുന്നു
+    let searchInterval;
+
     window.onload = function() {
         peer = new Peer(myId, peerOptions);
 
         peer.on('open', (id) => {
-            document.getElementById('myPresenceStatus').innerText = "നിങ്ങളുടെ സിഗ്നൽ സജീവമാണ് (" + id + ")";
-            document.getElementById('status').innerText = "സിഗ്നൽ ഓപ്പൺ ആണ്. മറ്റുള്ളവത്തിനായി തിരയുന്നു...";
+            document.getElementById('myPresenceStatus').innerText = "നിങ്ങളുടെ ഐഡി: " + id;
+            document.getElementById('status').innerText = "റേഡാർ ഓൺ ആണ്. അടുത്തുള്ള ഡിവൈസിനായി തിരയുന്നു...";
             
-            // അടുത്തുള്ള ഡിവൈസുകളെ തപ്പാൻ തുടങ്ങുന്നു
-            startScanning();
+            // ഡിവൈസ് കിട്ടുന്നത് വരെ തുടർച്ചയായി പരതുന്നു
+            startContinuousScanning();
         });
 
-        // മറ്റാരെങ്കിലും നമ്മിലേക്ക് കണക്റ്റ് ചെയ്യാൻ വരുമ്പോൾ (Receiver Mode)
         peer.on('connection', (connection) => {
             document.getElementById('status').innerText = "മറ്റൊരു ഡിവൈസ് നിങ്ങളുമായി ബന്ധപ്പെട്ടു! ഫയൽ സ്വീകരിക്കുന്നു...";
+            clearInterval(searchInterval); // ഡിവൈസ് കിട്ടിയാൽ തിരച്ചിൽ നിർത്തുന്നു
             setupReceiver(connection);
         });
 
@@ -103,46 +102,39 @@
         });
     };
 
-    function startScanning() {
-        // സമീപത്തുള്ള മറ്റ് ഡിവൈസ് ഐഡികൾ പരിശോധിക്കുന്നു (ഉദാഹരണത്തിന് 1 മുതൽ 10 വരെ ഉള്ള സഫിക്സുകൾ)
+    function startContinuousScanning() {
         document.getElementById('deviceListCard').style.display = 'block';
         let container = document.getElementById('detectedDevices');
-        container.innerHTML = "<p style='font-size:13px; color:#666;'>സമീപത്തുള്ള സിഗ്നലുകൾക്കായി നോക്കുന്നു...</p>";
+        let currentTry = 1000;
 
-        let foundAny = false;
-        let checkedCount = 0;
+        // ഓരോ 1.5 സെക്കൻഡിലും അടുത്തടുത്തുള്ള ഐഡികൾ തുടർച്ചയായി പരിശോധിച്ചുകൊണ്ടിരിക്കും
+        searchInterval = setInterval(() => {
+            if(currentTry > 9999) currentTry = 1000; // ലൂപ്പ് റീസെറ്റ് ചെയ്യുന്നു
+            let targetId = groupKey + currentTry;
 
-        for(let i = 100; i <= 110; i++) {
-            let targetId = groupKey + i;
-            if(targetId === myId) continue; // സ്വന്തം ഐഡി ഒഴിവാക്കുന്നു
-
-            let tempPeer = new Peer();
-            tempPeer.on('open', () => {
-                let conn = tempPeer.connect(targetId);
-                conn.on('open', () => {
-                    foundAny = true;
-                    container.innerHTML = `
-                        <div style="background:#fff; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px;">
-                            <span style="font-size:13px; font-weight:bold; color:#28a745;">✨ ഒരു ഡിവൈസ് സാന്നിധ്യം തിരിച്ചറിഞ്ഞു! (${targetId})</span>
-                            <button class="device-btn" onclick="connectAndSend('${targetId}')">ഫയൽ ഇങ്ങോട്ട് അയക്കൂ</button>
-                        </div>
-                    `;
-                    tempPeer.destroy();
+            if(targetId !== myId) {
+                let tempPeer = new Peer();
+                tempPeer.on('open', () => {
+                    let conn = tempPeer.connect(targetId);
+                    conn.on('open', () => {
+                        container.innerHTML = `
+                            <div style="background:#fff; padding:10px; border:1px solid #ddd; border-radius:6px; margin-bottom:5px;">
+                                <span style="font-size:13px; font-weight:bold; color:#28a745;">✨ ഡിവൈസ് കണ്ടെത്തി! (${targetId})</span>
+                                <button class="device-btn" onclick="connectAndSend('${targetId}')">ഫയൽ ഇങ്ങോട്ട് അയക്കൂ</button>
+                            </div>
+                        `;
+                        document.getElementById('status').innerText = "അടുത്തുള്ള ഡിവൈസ് സാന്നിധ്യം തിരിച്ചറിഞ്ഞു!";
+                        tempPeer.destroy();
+                    });
+                    setTimeout(() => {
+                        tempPeer.destroy();
+                    }, 800);
                 });
-                setTimeout(() => {
-                    tempPeer.destroy();
-                }, 1000);
-            });
-        }
-
-        setTimeout(() => {
-            if(!foundAny && container.innerHTML.includes("നോക്കുന്നു")) {
-                container.innerHTML = "<p style='font-size:13px; color:#d9534f;'>സമീപത്ത് മറ്റ് ഡിവൈസുകൾ കണ്ടെത്തിയില്ല. പേജ് റിഫ്രഷ് ചെയ്ത് വീണ്ടും നോക്കുക.</p>";
             }
-        }, 3000);
+            currentTry++;
+        }, 1500);
     }
 
-    // സെൻഡർ മോഡ്: കണ്ടെത്തിയ ഡിവൈസിലേക്ക് കണക്റ്റ് ചെയ്ത് ഫയൽ അയക്കുന്നു
     function connectAndSend(targetId) {
         const fileInput = document.getElementById('fileInput');
         if (fileInput.files.length === 0) {
@@ -151,6 +143,7 @@
         }
         selectedFile = fileInput.files[0];
         document.getElementById('status').innerText = `${targetId} -ലേക്ക് കണക്റ്റ് ചെയ്യുന്നു...`;
+        clearInterval(searchInterval);
 
         let senderPeer = new Peer(peerOptions);
         senderPeer.on('open', () => {
@@ -159,10 +152,6 @@
             conn.on('open', () => {
                 document.getElementById('status').innerText = "കണക്റ്റ് ആയി! ഫയൽ കൈമാറ്റം തുടങ്ങുന്നു...";
                 sendFileData(conn);
-            });
-
-            conn.on('error', (err) => {
-                alert("കൈമാറ്റം പരാജയപ്പെട്ടു.");
             });
         });
     }
@@ -202,7 +191,6 @@
         readNextChunk();
     }
 
-    // റിസീവർ മോഡ്: ഫയൽ സ്വീകരിക്കുന്നത്
     function setupReceiver(conn) {
         document.getElementById('progressBar').style.display = 'block';
         let fileMeta = {}, receivedBuffers = [], receivedSize = 0;

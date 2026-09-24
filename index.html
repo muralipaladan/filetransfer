@@ -2,118 +2,360 @@
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>P2P File Transfer</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <title>QR File Transfer</title>
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
   <style>
-    body { font-family: system-ui; max-width: 500px; margin: 40px auto; padding: 20px; }
-    input, button { padding: 10px; margin: 5px 0; width: 100%; box-sizing: border-box; }
-    #status { margin: 15px 0; padding: 10px; background: #f0f0f0; border-radius: 8px; }
-    progress { width: 100%; height: 20px; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 { font-size: 1.4rem; text-align: center; margin-bottom: 12px; color: #38bdf8; }
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status {
+      text-align: center;
+      padding: 10px;
+      border-radius: 10px;
+      background: #334155;
+      margin-bottom: 12px;
+      font-size: 0.95rem;
+    }
+    .status.connected { background: #065f46; color: #a7f3d0; }
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      margin: 12px 0;
+      background: white;
+      padding: 12px;
+      border-radius: 12px;
+    }
+    #qrcode canvas { max-width: 100%; height: auto; }
+    button, .btn {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 8px 0;
+      transition: 0.2s;
+    }
+    .btn-primary { background: #0ea5e9; color: white; }
+    .btn-primary:hover { background: #0284c7; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-danger { background: #ef4444; color: white; }
+    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    #reader {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      background: #334155;
+      border: 2px dashed #64748b;
+      border-radius: 12px;
+      color: #e2e8f0;
+      margin: 8px 0;
+    }
+    .file-list { margin-top: 12px; }
+    .file-item {
+      background: #334155;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0;
+      font-size: 0.9rem;
+    }
+    .file-name { font-weight: 600; margin-bottom: 4px; word-break: break-all; }
+    .progress-bar {
+      height: 8px;
+      background: #475569;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+      width: 0%;
+      transition: width 0.2s;
+    }
+    .progress-text { font-size: 0.8rem; color: #94a3b8; }
+    .hidden { display: none !important; }
+    .small { font-size: 0.85rem; color: #94a3b8; text-align: center; margin-top: 8px; }
   </style>
 </head>
 <body>
-  <h2>📁 P2P File Transfer</h2>
-  <p>നിങ്ങളുടെ ID: <strong id="my-id">...</strong></p>
-  
-  <input type="text" id="peer-id" placeholder="മറ്റേ ഡിവൈസിന്റെ ID ഇവിടെ ഇടുക">
-  <button onclick="connect()">Connect</button>
-  
-  <div id="status">കണക്ഷൻ കാത്തിരിക്കുന്നു...</div>
-  
-  <input type="file" id="file-input" disabled>
-  <button id="send-btn" onclick="sendFile()" disabled>Send File</button>
-  
-  <progress id="progress" value="0" max="100" style="display:none"></progress>
-  <div id="log"></div>
+  <h1>📁 QR File Transfer</h1>
+
+  <!-- Connection Section -->
+  <div class="card" id="connection-card">
+    <div class="status" id="status">കണക്ഷൻ തയ്യാറാക്കുന്നു...</div>
+
+    <div id="my-qr-section">
+      <p class="small">നിങ്ങളുടെ QR കോഡ് (മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യട്ടെ)</p>
+      <div id="qrcode"></div>
+      <p class="small" id="my-id-text"></p>
+    </div>
+
+    <button class="btn btn-primary" id="scan-btn" onclick="startScan()">📷 QR സ്കാൻ ചെയ്യുക</button>
+    <div id="reader" class="hidden"></div>
+    <button class="btn btn-danger hidden" id="stop-scan-btn" onclick="stopScan()">സ്കാൻ നിർത്തുക</button>
+  </div>
+
+  <!-- Transfer Section (after connected) -->
+  <div class="card hidden" id="transfer-card">
+    <div class="status connected" id="conn-status">✅ Connected! ഇപ്പോൾ ഫയൽ അയയ്ക്കാം</div>
+
+    <input type="file" id="file-input" multiple>
+    <button class="btn btn-success" id="send-btn" onclick="sendFiles()" disabled>📤 ഫയലുകൾ അയയ്ക്കുക</button>
+
+    <div class="file-list" id="outgoing-list"></div>
+    <div class="file-list" id="incoming-list"></div>
+  </div>
 
   <script>
-    const peer = new Peer(); // random ID
+    let peer = null;
     let conn = null;
+    let myId = null;
+    let html5QrCode = null;
+    let incomingFiles = {};   // id → { name, size, chunks, received }
+
+    // ========== PeerJS Setup ==========
+    peer = new Peer({
+      debug: 1,
+      config: {
+        iceServers: [
+          { urls: 'stun:stun.l.google.com:19302' },
+          { urls: 'stun:stun1.l.google.com:19302' }
+        ]
+      }
+    });
 
     peer.on('open', id => {
-      document.getElementById('my-id').textContent = id;
-      document.getElementById('status').textContent = 'നിങ്ങളുടെ ID: ' + id + ' (മറ്റേ ഡിവൈസിലേക്ക് പങ്കിടുക)';
+      myId = id;
+      document.getElementById('status').textContent = 'QR കോഡ് തയ്യാറാണ്. മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യുക';
+      document.getElementById('my-id-text').textContent = 'ID: ' + id;
+
+      // Generate QR
+      QRCode.toCanvas(document.createElement('canvas'), id, {
+        width: 220,
+        margin: 1,
+        color: { dark: '#000000', light: '#ffffff' }
+      }, (err, canvas) => {
+        if (err) console.error(err);
+        else {
+          const qrDiv = document.getElementById('qrcode');
+          qrDiv.innerHTML = '';
+          qrDiv.appendChild(canvas);
+        }
+      });
     });
 
     peer.on('connection', c => {
-      conn = c;
-      setupConnection();
-      document.getElementById('status').textContent = 'Connected! ഫയൽ അയയ്ക്കാം.';
-      enableSend();
+      setupConnection(c);
     });
 
-    function connect() {
-      const id = document.getElementById('peer-id').value.trim();
-      if (!id) return alert('ID ഇടുക');
-      conn = peer.connect(id);
-      setupConnection();
-    }
+    peer.on('error', err => {
+      console.error(err);
+      document.getElementById('status').textContent = 'Error: ' + err.type;
+    });
 
-    function setupConnection() {
-      conn.on('open', () => {
-        document.getElementById('status').textContent = 'Connected!';
-        enableSend();
-      });
-
-      conn.on('data', data => {
-        if (data.fileName) {
-          // File metadata
-          window.incomingFile = { name: data.fileName, size: data.fileSize, chunks: [] };
-          document.getElementById('status').textContent = 'Receiving: ' + data.fileName;
-        } else if (data.chunk) {
-          window.incomingFile.chunks.push(data.chunk);
-          const received = window.incomingFile.chunks.reduce((a, b) => a + b.byteLength, 0);
-          const pct = Math.round((received / window.incomingFile.size) * 100);
-          document.getElementById('progress').style.display = 'block';
-          document.getElementById('progress').value = pct;
-
-          if (received >= window.incomingFile.size) {
-            const blob = new Blob(window.incomingFile.chunks);
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = window.incomingFile.name;
-            a.click();
-            document.getElementById('status').textContent = 'ഡൗൺലോഡ് പൂർത്തിയായി!';
-          }
-        }
-      });
-    }
-
-    function enableSend() {
-      document.getElementById('file-input').disabled = false;
+    function setupConnection(c) {
+      conn = c;
+      document.getElementById('status').textContent = 'Connected!';
+      document.getElementById('connection-card').classList.add('hidden');
+      document.getElementById('transfer-card').classList.remove('hidden');
       document.getElementById('send-btn').disabled = false;
+
+      stopScan();
+
+      conn.on('data', handleIncomingData);
+      conn.on('close', () => {
+        alert('Connection closed');
+        location.reload();
+      });
     }
 
-    function sendFile() {
-      const file = document.getElementById('file-input').files[0];
-      if (!file || !conn) return;
+    // ========== QR Scan ==========
+    function startScan() {
+      document.getElementById('reader').classList.remove('hidden');
+      document.getElementById('scan-btn').classList.add('hidden');
+      document.getElementById('stop-scan-btn').classList.remove('hidden');
+      document.getElementById('my-qr-section').classList.add('hidden');
 
-      conn.send({ fileName: file.name, fileSize: file.size });
+      html5QrCode = new Html5Qrcode("reader");
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          // Got peer ID
+          stopScan();
+          if (decodedText === myId) {
+            alert('സ്വന്തം QR സ്കാൻ ചെയ്തു. മറ്റേ ഡിവൈസിന്റെ QR സ്കാൻ ചെയ്യുക');
+            return;
+          }
+          document.getElementById('status').textContent = 'കണക്ട് ചെയ്യുന്നു...';
+          const c = peer.connect(decodedText, { reliable: true });
+          setupConnection(c);
+        },
+        (err) => {} // ignore scan errors
+      ).catch(err => {
+        alert('Camera access failed: ' + err);
+        stopScan();
+      });
+    }
 
-      const chunkSize = 16 * 1024; // 16KB
-      let offset = 0;
-      const reader = new FileReader();
-
-      reader.onload = e => {
-        conn.send({ chunk: e.target.result });
-        offset += e.target.result.byteLength;
-        document.getElementById('progress').style.display = 'block';
-        document.getElementById('progress').value = Math.round((offset / file.size) * 100);
-
-        if (offset < file.size) {
-          readNext();
-        } else {
-          document.getElementById('status').textContent = 'അയച്ചു!';
-        }
-      };
-
-      function readNext() {
-        const slice = file.slice(offset, offset + chunkSize);
-        reader.readAsArrayBuffer(slice);
+    function stopScan() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+        }).catch(() => {});
       }
-      readNext();
+      document.getElementById('reader').classList.add('hidden');
+      document.getElementById('scan-btn').classList.remove('hidden');
+      document.getElementById('stop-scan-btn').classList.add('hidden');
+      document.getElementById('my-qr-section').classList.remove('hidden');
+    }
+
+    // ========== File Sending (Multi-file) ==========
+    function sendFiles() {
+      const files = document.getElementById('file-input').files;
+      if (!files.length || !conn) return;
+
+      Array.from(files).forEach((file, index) => {
+        const fileId = Date.now() + '-' + index;
+        createProgressItem(fileId, file.name, file.size, 'outgoing');
+
+        // Send metadata first
+        conn.send({
+          type: 'meta',
+          fileId,
+          name: file.name,
+          size: file.size
+        });
+
+        // Chunk & send
+        const chunkSize = 16 * 1024; // 16 KB
+        let offset = 0;
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          conn.send({
+            type: 'chunk',
+            fileId,
+            data: e.target.result,
+            offset
+          });
+
+          offset += e.target.result.byteLength;
+          updateProgress(fileId, offset, file.size, 'outgoing');
+
+          if (offset < file.size) {
+            readSlice();
+          } else {
+            conn.send({ type: 'done', fileId });
+            markComplete(fileId, 'outgoing');
+          }
+        };
+
+        function readSlice() {
+          const slice = file.slice(offset, offset + chunkSize);
+          reader.readAsArrayBuffer(slice);
+        }
+        readSlice();
+      });
+
+      document.getElementById('file-input').value = '';
+    }
+
+    // ========== Incoming Data ==========
+    function handleIncomingData(data) {
+      if (data.type === 'meta') {
+        incomingFiles[data.fileId] = {
+          name: data.name,
+          size: data.size,
+          chunks: [],
+          received: 0
+        };
+        createProgressItem(data.fileId, data.name, data.size, 'incoming');
+      }
+      else if (data.type === 'chunk') {
+        const f = incomingFiles[data.fileId];
+        if (!f) return;
+        f.chunks.push(data.data);
+        f.received += data.data.byteLength;
+        updateProgress(data.fileId, f.received, f.size, 'incoming');
+      }
+      else if (data.type === 'done') {
+        const f = incomingFiles[data.fileId];
+        if (!f) return;
+
+        const blob = new Blob(f.chunks);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = f.name;
+        a.click();
+        URL.revokeObjectURL(url);
+
+        markComplete(data.fileId, 'incoming');
+        delete incomingFiles[data.fileId];
+      }
+    }
+
+    // ========== UI Helpers ==========
+    function createProgressItem(id, name, size, direction) {
+      const list = document.getElementById(direction + '-list');
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.id = 'item-' + id;
+      div.innerHTML = `
+        <div class="file-name">${direction === 'outgoing' ? '📤' : '📥'} ${name}</div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-${id}"></div></div>
+        <div class="progress-text" id="text-${id}">0% • 0 / ${formatSize(size)}</div>
+      `;
+      list.appendChild(div);
+    }
+
+    function updateProgress(id, received, total, direction) {
+      const pct = Math.min(100, Math.round((received / total) * 100));
+      const bar = document.getElementById('bar-' + id);
+      const text = document.getElementById('text-' + id);
+      if (bar) bar.style.width = pct + '%';
+      if (text) text.textContent = `${pct}% • ${formatSize(received)} / ${formatSize(total)}`;
+    }
+
+    function markComplete(id, direction) {
+      const text = document.getElementById('text-' + id);
+      if (text) text.textContent = '✅ Completed';
+      const bar = document.getElementById('bar-' + id);
+      if (bar) bar.style.background = '#10b981';
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
     }
   </script>
 </body>

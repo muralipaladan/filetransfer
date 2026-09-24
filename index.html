@@ -2,15 +2,18 @@
 <html lang="ml">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>QR File Transfer</title>
+
+  <!-- Libraries -->
   <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.3/build/qrcode.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
   <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
       background: #0f172a;
       color: #e2e8f0;
       min-height: 100vh;
@@ -18,7 +21,12 @@
       max-width: 480px;
       margin: 0 auto;
     }
-    h1 { font-size: 1.4rem; text-align: center; margin-bottom: 12px; color: #38bdf8; }
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 16px;
+      color: #38bdf8;
+    }
     .card {
       background: #1e293b;
       border-radius: 16px;
@@ -28,23 +36,34 @@
     }
     .status {
       text-align: center;
-      padding: 10px;
-      border-radius: 10px;
+      padding: 12px;
+      border-radius: 12px;
       background: #334155;
-      margin-bottom: 12px;
+      margin-bottom: 14px;
       font-size: 0.95rem;
+      line-height: 1.4;
     }
-    .status.connected { background: #065f46; color: #a7f3d0; }
+    .status.connected {
+      background: #065f46;
+      color: #a7f3d0;
+    }
     #qrcode {
       display: flex;
       justify-content: center;
-      margin: 12px 0;
+      align-items: center;
+      margin: 14px auto;
       background: white;
-      padding: 12px;
-      border-radius: 12px;
+      padding: 14px;
+      border-radius: 14px;
+      width: fit-content;
+      min-height: 220px;
+      min-width: 220px;
     }
-    #qrcode canvas { max-width: 100%; height: auto; }
-    button, .btn {
+    #qrcode img, #qrcode canvas {
+      display: block;
+      max-width: 100%;
+    }
+    button {
       display: block;
       width: 100%;
       padding: 14px;
@@ -54,13 +73,11 @@
       font-weight: 600;
       cursor: pointer;
       margin: 8px 0;
-      transition: 0.2s;
     }
     .btn-primary { background: #0ea5e9; color: white; }
-    .btn-primary:hover { background: #0284c7; }
     .btn-success { background: #10b981; color: white; }
-    .btn-danger { background: #ef4444; color: white; }
-    .btn:disabled { opacity: 0.5; cursor: not-allowed; }
+    .btn-danger  { background: #ef4444; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
     #reader {
       width: 100%;
       border-radius: 12px;
@@ -84,7 +101,11 @@
       margin: 8px 0;
       font-size: 0.9rem;
     }
-    .file-name { font-weight: 600; margin-bottom: 4px; word-break: break-all; }
+    .file-name {
+      font-weight: 600;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
     .progress-bar {
       height: 8px;
       background: #475569;
@@ -96,37 +117,53 @@
       height: 100%;
       background: linear-gradient(90deg, #0ea5e9, #38bdf8);
       width: 0%;
-      transition: width 0.2s;
+      transition: width 0.25s;
     }
-    .progress-text { font-size: 0.8rem; color: #94a3b8; }
+    .progress-text {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
     .hidden { display: none !important; }
-    .small { font-size: 0.85rem; color: #94a3b8; text-align: center; margin-top: 8px; }
+    .small {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 8px;
+    }
+    #my-id-text {
+      font-size: 0.8rem;
+      color: #64748b;
+      word-break: break-all;
+      text-align: center;
+      margin-top: 8px;
+    }
   </style>
 </head>
 <body>
+
   <h1>📁 QR File Transfer</h1>
 
-  <!-- Connection Section -->
+  <!-- Connection Card -->
   <div class="card" id="connection-card">
     <div class="status" id="status">കണക്ഷൻ തയ്യാറാക്കുന്നു...</div>
 
     <div id="my-qr-section">
-      <p class="small">നിങ്ങളുടെ QR കോഡ് (മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യട്ടെ)</p>
+      <p class="small">നിങ്ങളുടെ QR കോഡ് (മറ്റേ ഡിവൈസ് ഇത് സ്കാൻ ചെയ്യട്ടെ)</p>
       <div id="qrcode"></div>
-      <p class="small" id="my-id-text"></p>
+      <div id="my-id-text"></div>
     </div>
 
-    <button class="btn btn-primary" id="scan-btn" onclick="startScan()">📷 QR സ്കാൻ ചെയ്യുക</button>
+    <button class="btn-primary" id="scan-btn" onclick="startScan()">📷 QR സ്കാൻ ചെയ്യുക</button>
     <div id="reader" class="hidden"></div>
-    <button class="btn btn-danger hidden" id="stop-scan-btn" onclick="stopScan()">സ്കാൻ നിർത്തുക</button>
+    <button class="btn-danger hidden" id="stop-scan-btn" onclick="stopScan()">സ്കാൻ നിർത്തുക</button>
   </div>
 
-  <!-- Transfer Section (after connected) -->
+  <!-- Transfer Card -->
   <div class="card hidden" id="transfer-card">
     <div class="status connected" id="conn-status">✅ Connected! ഇപ്പോൾ ഫയൽ അയയ്ക്കാം</div>
 
     <input type="file" id="file-input" multiple>
-    <button class="btn btn-success" id="send-btn" onclick="sendFiles()" disabled>📤 ഫയലുകൾ അയയ്ക്കുക</button>
+    <button class="btn-success" id="send-btn" onclick="sendFiles()" disabled>📤 ഫയലുകൾ അയയ്ക്കുക</button>
 
     <div class="file-list" id="outgoing-list"></div>
     <div class="file-list" id="incoming-list"></div>
@@ -137,50 +174,63 @@
     let conn = null;
     let myId = null;
     let html5QrCode = null;
-    let incomingFiles = {};   // id → { name, size, chunks, received }
+    let incomingFiles = {};
 
-    // ========== PeerJS Setup ==========
-    peer = new Peer({
-      debug: 1,
-      config: {
-        iceServers: [
-          { urls: 'stun:stun.l.google.com:19302' },
-          { urls: 'stun:stun1.l.google.com:19302' }
-        ]
-      }
-    });
-
-    peer.on('open', id => {
-      myId = id;
-      document.getElementById('status').textContent = 'QR കോഡ് തയ്യാറാണ്. മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യുക';
-      document.getElementById('my-id-text').textContent = 'ID: ' + id;
-
-      // Generate QR
-      QRCode.toCanvas(document.createElement('canvas'), id, {
-        width: 220,
-        margin: 1,
-        color: { dark: '#000000', light: '#ffffff' }
-      }, (err, canvas) => {
-        if (err) console.error(err);
-        else {
-          const qrDiv = document.getElementById('qrcode');
-          qrDiv.innerHTML = '';
-          qrDiv.appendChild(canvas);
+    // ========== Initialize Peer ==========
+    function initPeer() {
+      peer = new Peer({
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
         }
       });
-    });
 
-    peer.on('connection', c => {
-      setupConnection(c);
-    });
+      peer.on('open', (id) => {
+        myId = id;
+        document.getElementById('status').textContent = 'QR കോഡ് തയ്യാറാണ്. മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യുക';
+        document.getElementById('my-id-text').textContent = 'ID: ' + id;
 
-    peer.on('error', err => {
-      console.error(err);
-      document.getElementById('status').textContent = 'Error: ' + err.type;
-    });
+        // Clear previous QR
+        const qrDiv = document.getElementById('qrcode');
+        qrDiv.innerHTML = '';
 
+        // Generate QR using qrcodejs
+        try {
+          new QRCode(qrDiv, {
+            text: id,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (err) {
+          console.error('QR Error:', err);
+          qrDiv.innerHTML = '<p style="color:red;padding:20px;">QR generate ചെയ്യാനായില്ല</p>';
+        }
+      });
+
+      peer.on('connection', (c) => {
+        setupConnection(c);
+      });
+
+      peer.on('error', (err) => {
+        console.error(err);
+        document.getElementById('status').textContent = 'Error: ' + (err.type || err.message);
+      });
+    }
+
+    // Start after page load
+    window.addEventListener('load', initPeer);
+
+    // ========== Connection Setup ==========
     function setupConnection(c) {
+      if (conn) return; // already connected
       conn = c;
+
       document.getElementById('status').textContent = 'Connected!';
       document.getElementById('connection-card').classList.add('hidden');
       document.getElementById('transfer-card').classList.remove('hidden');
@@ -190,12 +240,15 @@
 
       conn.on('data', handleIncomingData);
       conn.on('close', () => {
-        alert('Connection closed');
+        alert('Connection closed. Page reload ചെയ്യുക.');
         location.reload();
+      });
+      conn.on('error', (err) => {
+        console.error('Conn error:', err);
       });
     }
 
-    // ========== QR Scan ==========
+    // ========== QR Scanner ==========
     function startScan() {
       document.getElementById('reader').classList.remove('hidden');
       document.getElementById('scan-btn').classList.add('hidden');
@@ -203,22 +256,27 @@
       document.getElementById('my-qr-section').classList.add('hidden');
 
       html5QrCode = new Html5Qrcode("reader");
+
       html5QrCode.start(
         { facingMode: "environment" },
         { fps: 10, qrbox: { width: 250, height: 250 } },
         (decodedText) => {
-          // Got peer ID
           stopScan();
+
           if (decodedText === myId) {
             alert('സ്വന്തം QR സ്കാൻ ചെയ്തു. മറ്റേ ഡിവൈസിന്റെ QR സ്കാൻ ചെയ്യുക');
             return;
           }
+
           document.getElementById('status').textContent = 'കണക്ട് ചെയ്യുന്നു...';
           const c = peer.connect(decodedText, { reliable: true });
-          setupConnection(c);
+          c.on('open', () => setupConnection(c));
+          c.on('error', (err) => {
+            document.getElementById('status').textContent = 'Connect failed: ' + err;
+          });
         },
-        (err) => {} // ignore scan errors
-      ).catch(err => {
+        () => {} // ignore continuous scan errors
+      ).catch((err) => {
         alert('Camera access failed: ' + err);
         stopScan();
       });
@@ -237,58 +295,62 @@
       document.getElementById('my-qr-section').classList.remove('hidden');
     }
 
-    // ========== File Sending (Multi-file) ==========
+    // ========== Send Files ==========
     function sendFiles() {
       const files = document.getElementById('file-input').files;
-      if (!files.length || !conn) return;
+      if (!files.length || !conn || !conn.open) {
+        alert('Connection ഇല്ല അല്ലെങ്കിൽ ഫയൽ സെലക്ട് ചെയ്തിട്ടില്ല');
+        return;
+      }
 
       Array.from(files).forEach((file, index) => {
-        const fileId = Date.now() + '-' + index;
+        const fileId = Date.now() + '-' + index + '-' + Math.random().toString(36).substr(2, 5);
         createProgressItem(fileId, file.name, file.size, 'outgoing');
 
-        // Send metadata first
+        // Send metadata
         conn.send({
           type: 'meta',
-          fileId,
+          fileId: fileId,
           name: file.name,
           size: file.size
         });
 
-        // Chunk & send
-        const chunkSize = 16 * 1024; // 16 KB
+        const chunkSize = 16 * 1024; // 16KB
         let offset = 0;
         const reader = new FileReader();
 
         reader.onload = (e) => {
+          if (!conn || !conn.open) return;
+
           conn.send({
             type: 'chunk',
-            fileId,
-            data: e.target.result,
-            offset
+            fileId: fileId,
+            data: e.target.result
           });
 
           offset += e.target.result.byteLength;
-          updateProgress(fileId, offset, file.size, 'outgoing');
+          updateProgress(fileId, offset, file.size);
 
           if (offset < file.size) {
-            readSlice();
+            readNext();
           } else {
-            conn.send({ type: 'done', fileId });
-            markComplete(fileId, 'outgoing');
+            conn.send({ type: 'done', fileId: fileId });
+            markComplete(fileId);
           }
         };
 
-        function readSlice() {
+        function readNext() {
           const slice = file.slice(offset, offset + chunkSize);
           reader.readAsArrayBuffer(slice);
         }
-        readSlice();
+        readNext();
       });
 
+      // Clear input
       document.getElementById('file-input').value = '';
     }
 
-    // ========== Incoming Data ==========
+    // ========== Receive Files ==========
     function handleIncomingData(data) {
       if (data.type === 'meta') {
         incomingFiles[data.fileId] = {
@@ -304,7 +366,7 @@
         if (!f) return;
         f.chunks.push(data.data);
         f.received += data.data.byteLength;
-        updateProgress(data.fileId, f.received, f.size, 'incoming');
+        updateProgress(data.fileId, f.received, f.size);
       }
       else if (data.type === 'done') {
         const f = incomingFiles[data.fileId];
@@ -315,10 +377,12 @@
         const a = document.createElement('a');
         a.href = url;
         a.download = f.name;
+        document.body.appendChild(a);
         a.click();
+        document.body.removeChild(a);
         URL.revokeObjectURL(url);
 
-        markComplete(data.fileId, 'incoming');
+        markComplete(data.fileId);
         delete incomingFiles[data.fileId];
       }
     }
@@ -337,7 +401,7 @@
       list.appendChild(div);
     }
 
-    function updateProgress(id, received, total, direction) {
+    function updateProgress(id, received, total) {
       const pct = Math.min(100, Math.round((received / total) * 100));
       const bar = document.getElementById('bar-' + id);
       const text = document.getElementById('text-' + id);
@@ -345,17 +409,20 @@
       if (text) text.textContent = `${pct}% • ${formatSize(received)} / ${formatSize(total)}`;
     }
 
-    function markComplete(id, direction) {
+    function markComplete(id) {
       const text = document.getElementById('text-' + id);
       if (text) text.textContent = '✅ Completed';
       const bar = document.getElementById('bar-' + id);
-      if (bar) bar.style.background = '#10b981';
+      if (bar) {
+        bar.style.width = '100%';
+        bar.style.background = '#10b981';
+      }
     }
 
     function formatSize(bytes) {
       if (bytes < 1024) return bytes + ' B';
-      if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
-      return (bytes / (1024 * 1024)).toFixed(1) + ' MB';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
     }
   </script>
 </body>

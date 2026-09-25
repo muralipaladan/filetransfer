@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="ml">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>QR File Transfer</title>
+  <!-- Libraries -->
+  <script src="https://unpkg.com/peerjs@1.5.4/dist/peerjs.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+  <script src="https://unpkg.com/html5-qrcode@2.3.8/html5-qrcode.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: #0f172a;
+      color: #e2e8f0;
+      min-height: 100vh;
+      padding: 16px;
+      max-width: 480px;
+      margin: 0 auto;
+    }
+    h1 {
+      font-size: 1.4rem;
+      text-align: center;
+      margin-bottom: 16px;
+      color: #38bdf8;
+    }
+    .card {
+      background: #1e293b;
+      border-radius: 16px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 4px 20px rgba(0,0,0,0.3);
+    }
+    .status {
+      text-align: center;
+      padding: 12px;
+      border-radius: 12px;
+      background: #334155;
+      margin-bottom: 14px;
+      font-size: 0.95rem;
+      line-height: 1.4;
+    }
+    .status.connected {
+      background: #065f46;
+      color: #a7f3d0;
+    }
+    #qrcode {
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      margin: 14px auto;
+      background: white;
+      padding: 14px;
+      border-radius: 14px;
+      width: fit-content;
+      min-height: 220px;
+      min-width: 220px;
+    }
+    #qrcode img, #qrcode canvas {
+      display: block;
+      max-width: 100%;
+    }
+    button {
+      display: block;
+      width: 100%;
+      padding: 14px;
+      border: none;
+      border-radius: 12px;
+      font-size: 1rem;
+      font-weight: 600;
+      cursor: pointer;
+      margin: 8px 0;
+    }
+    .btn-primary { background: #0ea5e9; color: white; }
+    .btn-success { background: #10b981; color: white; }
+    .btn-danger  { background: #ef4444; color: white; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+    #reader {
+      width: 100%;
+      border-radius: 12px;
+      overflow: hidden;
+      margin: 10px 0;
+    }
+    input[type="file"] {
+      width: 100%;
+      padding: 12px;
+      background: #334155;
+      border: 2px dashed #64748b;
+      border-radius: 12px;
+      color: #e2e8f0;
+      margin: 8px 0;
+    }
+    .file-list { margin-top: 12px; }
+    .file-item {
+      background: #334155;
+      border-radius: 10px;
+      padding: 10px 12px;
+      margin: 8px 0;
+      font-size: 0.9rem;
+    }
+    .file-name {
+      font-weight: 600;
+      margin-bottom: 6px;
+      word-break: break-all;
+    }
+    .progress-bar {
+      height: 8px;
+      background: #475569;
+      border-radius: 4px;
+      overflow: hidden;
+      margin: 6px 0;
+    }
+    .progress-fill {
+      height: 100%;
+      background: linear-gradient(90deg, #0ea5e9, #38bdf8);
+      width: 0%;
+      transition: width 0.25s;
+    }
+    .progress-text {
+      font-size: 0.8rem;
+      color: #94a3b8;
+    }
+    .hidden { display: none !important; }
+    .small {
+      font-size: 0.85rem;
+      color: #94a3b8;
+      text-align: center;
+      margin-top: 8px;
+    }
+    #my-id-text {
+      font-size: 0.8rem;
+      color: #64748b;
+      word-break: break-all;
+      text-align: center;
+      margin-top: 8px;
+    }
+  </style>
+</head>
+<body>
+  <h1>📁 QR File Transfer</h1>
+
+  <!-- Connection Card -->
+  <div class="card" id="connection-card">
+    <div class="status" id="status">കണക്ഷൻ തയ്യാറാക്കുന്നു...</div>
+    
+    <div id="my-qr-section">
+      <p class="small">നിങ്ങളുടെ QR കോഡ് (മറ്റേ ഡിവൈസ് ഇത് സ്കാൻ ചെയ്യട്ടെ)</p>
+      <div id="qrcode"></div>
+      <div id="my-id-text"></div>
+    </div>
+
+    <button class="btn-primary" id="scan-btn" onclick="startScan()">📷 QR സ്കാൻ ചെയ്യുക</button>
+    <div id="reader" class="hidden"></div>
+    <button class="btn-danger hidden" id="stop-scan-btn" onclick="stopScan()">സ്കാൻ നിർത്തുക</button>
+  </div>
+
+  <!-- Transfer Card -->
+  <div class="card hidden" id="transfer-card">
+    <div class="status connected" id="conn-status">✅ Connected! ഇപ്പോൾ ഫയൽ അയയ്ക്കാം</div>
+    <input type="file" id="file-input" multiple>
+    <button class="btn-success" id="send-btn" onclick="sendFiles()" disabled>📤 ഫയലുകൾ അയയ്ക്കുക</button>
+    <div class="file-list" id="outgoing-list"></div>
+    <div class="file-list" id="incoming-list"></div>
+  </div>
+
+  <script>
+    // ===== Config =====
+    const BASE_URL = "https://muralipaladan.github.io/filetransfer/";
+
+    let peer = null;
+    let conn = null;
+    let myId = null;
+    let html5QrCode = null;
+    let incomingFiles = {};
+
+    // ========== Helper: Extract peer ID from any text/URL ==========
+    function extractPeerId(text) {
+      if (!text) return null;
+      text = text.trim();
+
+      // Already a plain peer ID (no http)
+      if (!text.includes("http") && !text.includes("?") && text.length > 5) {
+        return text;
+      }
+
+      try {
+        const url = new URL(text);
+        // Support ?id=  or  ?peer=
+        return url.searchParams.get("id") || url.searchParams.get("peer") || null;
+      } catch (e) {
+        // Not a valid URL → treat as plain ID
+        return text;
+      }
+    }
+
+    // ========== Initialize Peer ==========
+    function initPeer() {
+      peer = new Peer({
+        debug: 1,
+        config: {
+          iceServers: [
+            { urls: 'stun:stun.l.google.com:19302' },
+            { urls: 'stun:stun1.l.google.com:19302' }
+          ]
+        }
+      });
+
+      peer.on('open', (id) => {
+        myId = id;
+        document.getElementById('status').textContent = 'QR കോഡ് തയ്യാറാണ്. മറ്റേ ഡിവൈസ് സ്കാൻ ചെയ്യുക';
+        document.getElementById('my-id-text').textContent = 'ID: ' + id;
+
+        // Clear previous QR
+        const qrDiv = document.getElementById('qrcode');
+        qrDiv.innerHTML = '';
+
+        // ★★★ QR-ൽ പൂർണ്ണ URL + ID ഇടാക്കുന്നു ★★★
+        const qrContent = BASE_URL + "?id=" + encodeURIComponent(id);
+
+        try {
+          new QRCode(qrDiv, {
+            text: qrContent,
+            width: 200,
+            height: 200,
+            colorDark: "#000000",
+            colorLight: "#ffffff",
+            correctLevel: QRCode.CorrectLevel.M
+          });
+        } catch (err) {
+          console.error('QR Error:', err);
+          qrDiv.innerHTML = '<p style="color:red;padding:20px;">QR generate ചെയ്യാനായില്ല</p>';
+        }
+
+        // ★★★ URL-ൽ id ഉണ്ടെങ്കിൽ ഓട്ടോ കണക്റ്റ് ചെയ്യുക ★★★
+        const urlParams = new URLSearchParams(window.location.search);
+        const targetId = urlParams.get('id') || urlParams.get('peer');
+        if (targetId && targetId !== myId) {
+          document.getElementById('status').textContent = 'കണക്ട് ചെയ്യുന്നു...';
+          connectToPeer(targetId);
+        }
+      });
+
+      peer.on('connection', (c) => {
+        setupConnection(c);
+      });
+
+      peer.on('error', (err) => {
+        console.error(err);
+        document.getElementById('status').textContent = 'Error: ' + (err.type || err.message);
+      });
+    }
+
+    // Start after page load
+    window.addEventListener('load', initPeer);
+
+    // ========== Connect to a peer ==========
+    function connectToPeer(targetId) {
+      if (!peer || !targetId || targetId === myId) return;
+
+      const c = peer.connect(targetId, { reliable: true });
+      c.on('open', () => setupConnection(c));
+      c.on('error', (err) => {
+        document.getElementById('status').textContent = 'Connect failed: ' + err;
+      });
+    }
+
+    // ========== Connection Setup ==========
+    function setupConnection(c) {
+      if (conn) return; // already connected
+      conn = c;
+
+      document.getElementById('status').textContent = 'Connected!';
+      document.getElementById('connection-card').classList.add('hidden');
+      document.getElementById('transfer-card').classList.remove('hidden');
+      document.getElementById('send-btn').disabled = false;
+
+      stopScan();
+
+      conn.on('data', handleIncomingData);
+      conn.on('close', () => {
+        alert('Connection closed. Page reload ചെയ്യുക.');
+        location.reload();
+      });
+      conn.on('error', (err) => {
+        console.error('Conn error:', err);
+      });
+    }
+
+    // ========== QR Scanner ==========
+    function startScan() {
+      document.getElementById('reader').classList.remove('hidden');
+      document.getElementById('scan-btn').classList.add('hidden');
+      document.getElementById('stop-scan-btn').classList.remove('hidden');
+      document.getElementById('my-qr-section').classList.add('hidden');
+
+      html5QrCode = new Html5Qrcode("reader");
+
+      html5QrCode.start(
+        { facingMode: "environment" },
+        { fps: 10, qrbox: { width: 250, height: 250 } },
+        (decodedText) => {
+          stopScan();
+
+          const targetId = extractPeerId(decodedText);
+
+          if (!targetId) {
+            alert('QR-ൽ സാധുവായ ID കണ്ടെത്തിയില്ല');
+            return;
+          }
+
+          if (targetId === myId) {
+            alert('സ്വന്തം QR സ്കാൻ ചെയ്തു. മറ്റേ ഡിവൈസിന്റെ QR സ്കാൻ ചെയ്യുക');
+            return;
+          }
+
+          document.getElementById('status').textContent = 'കണക്ട് ചെയ്യുന്നു...';
+          connectToPeer(targetId);
+        },
+        () => {} // ignore continuous scan errors
+      ).catch((err) => {
+        alert('Camera access failed: ' + err);
+        stopScan();
+      });
+    }
+
+    function stopScan() {
+      if (html5QrCode) {
+        html5QrCode.stop().then(() => {
+          html5QrCode.clear();
+          html5QrCode = null;
+        }).catch(() => {});
+      }
+      document.getElementById('reader').classList.add('hidden');
+      document.getElementById('scan-btn').classList.remove('hidden');
+      document.getElementById('stop-scan-btn').classList.add('hidden');
+      document.getElementById('my-qr-section').classList.remove('hidden');
+    }
+
+    // ========== Send Files ==========
+    function sendFiles() {
+      const files = document.getElementById('file-input').files;
+      if (!files.length || !conn || !conn.open) {
+        alert('Connection ഇല്ല അല്ലെങ്കിൽ ഫയൽ സെലക്ട് ചെയ്തിട്ടില്ല');
+        return;
+      }
+
+      Array.from(files).forEach((file, index) => {
+        const fileId = Date.now() + '-' + index + '-' + Math.random().toString(36).substr(2, 5);
+        createProgressItem(fileId, file.name, file.size, 'outgoing');
+
+        // Send metadata
+        conn.send({
+          type: 'meta',
+          fileId: fileId,
+          name: file.name,
+          size: file.size
+        });
+
+        const chunkSize = 16 * 1024; // 16KB
+        let offset = 0;
+        const reader = new FileReader();
+
+        reader.onload = (e) => {
+          if (!conn || !conn.open) return;
+          conn.send({
+            type: 'chunk',
+            fileId: fileId,
+            data: e.target.result
+          });
+          offset += e.target.result.byteLength;
+          updateProgress(fileId, offset, file.size);
+
+          if (offset < file.size) {
+            readNext();
+          } else {
+            conn.send({ type: 'done', fileId: fileId });
+            markComplete(fileId);
+          }
+        };
+
+        function readNext() {
+          const slice = file.slice(offset, offset + chunkSize);
+          reader.readAsArrayBuffer(slice);
+        }
+        readNext();
+      });
+
+      // Clear input
+      document.getElementById('file-input').value = '';
+    }
+
+    // ========== Receive Files ==========
+    function handleIncomingData(data) {
+      if (data.type === 'meta') {
+        incomingFiles[data.fileId] = {
+          name: data.name,
+          size: data.size,
+          chunks: [],
+          received: 0
+        };
+        createProgressItem(data.fileId, data.name, data.size, 'incoming');
+      }
+      else if (data.type === 'chunk') {
+        const f = incomingFiles[data.fileId];
+        if (!f) return;
+        f.chunks.push(data.data);
+        f.received += data.data.byteLength;
+        updateProgress(data.fileId, f.received, f.size);
+      }
+      else if (data.type === 'done') {
+        const f = incomingFiles[data.fileId];
+        if (!f) return;
+
+        const blob = new Blob(f.chunks);
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = f.name;
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+        URL.revokeObjectURL(url);
+
+        markComplete(data.fileId);
+        delete incomingFiles[data.fileId];
+      }
+    }
+
+    // ========== UI Helpers ==========
+    function createProgressItem(id, name, size, direction) {
+      const list = document.getElementById(direction + '-list');
+      const div = document.createElement('div');
+      div.className = 'file-item';
+      div.id = 'item-' + id;
+      div.innerHTML = `
+        <div class="file-name">${direction === 'outgoing' ? '📤' : '📥'} ${name}</div>
+        <div class="progress-bar"><div class="progress-fill" id="bar-${id}"></div></div>
+        <div class="progress-text" id="text-${id}">0% • 0 / ${formatSize(size)}</div>
+      `;
+      list.appendChild(div);
+    }
+
+    function updateProgress(id, received, total) {
+      const pct = Math.min(100, Math.round((received / total) * 100));
+      const bar = document.getElementById('bar-' + id);
+      const text = document.getElementById('text-' + id);
+      if (bar) bar.style.width = pct + '%';
+      if (text) text.textContent = `${pct}% • ${formatSize(received)} / ${formatSize(total)}`;
+    }
+
+    function markComplete(id) {
+      const text = document.getElementById('text-' + id);
+      if (text) text.textContent = '✅ Completed';
+      const bar = document.getElementById('bar-' + id);
+      if (bar) {
+        bar.style.width = '100%';
+        bar.style.background = '#10b981';
+      }
+    }
+
+    function formatSize(bytes) {
+      if (bytes < 1024) return bytes + ' B';
+      if (bytes < 1048576) return (bytes / 1024).toFixed(1) + ' KB';
+      return (bytes / 1048576).toFixed(1) + ' MB';
+    }
+  </script>
+</body>
+</html>
